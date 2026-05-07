@@ -26,8 +26,9 @@
 
 ### 2.2 앱 (`oz-dev-log-app`)
 
-- **개발 서버:** `npm run dev` (Vite 기본 포트는 보통 `5173`)
-- **API 프록시:** `vite.config.ts`에서 `/users`, `/logs`, `/credit-transactions`를 `http://localhost:3000`으로 프록시합니다.  
+- **개발 서버:** `npm run dev` (Vite 포트는 `5173` 등 가변일 수 있음)
+- **`VITE_API_BASE_URL`:** 비워 두면(권장) 요청이 **동일 출처 상대 경로**(`/users` 등)로 나가 `vite.config.ts` 프록시를 탑니다. 값을 넣으면 브라우저가 API에 **직접** 호출하므로 백엔드 CORS가 맞아야 합니다.
+- **API 프록시:** `vite.config.ts`에서 `/users`, `/logs`, `/credit-transactions`를 `http://localhost:3000`으로 넘깁니다.  
   **앱 개발 시 API가 먼저 떠 있어야** 로그인·목록 등이 동작합니다.
 
 ### 2.3 빌드
@@ -154,7 +155,7 @@
 
 1. **일지 쓰기/수정/삭제 API 없음** — 서버 일지는 읽기만; 편집은 로컬 일지만.
 2. **인증은 데모 수준** — 토큰·세션 서버 없음.
-3. **CORS** — 개발은 Vite 프록시에 의존; 앱을 별도 오리진으로 띄우고 프록시 없이 쓰면 API CORS 설정이 필요할 수 있음 (`app.js`에 현재 `cors` 미들웨어는 없음).
+3. **CORS** — `app.js`의 `cors` 미들웨어: `CORS_ORIGIN`·기본값에 더해, **`NODE_ENV !== 'production'`** 이면 `http(s)://localhost`, `127.0.0.1`, `[::1]` 임의 포트 출처를 허용합니다. 프로덕션에서는 `NODE_ENV=production`과 `CORS_ORIGIN`으로 프론트 도메인을 명시하는 것을 권장합니다.
 4. **기획서의 Firebase/Storage/Firestore** — 미연동; 본 문서가 현재 진실의 원천.
 
 ---
