@@ -8,6 +8,7 @@
 | 웹 앱 | `oz-dev-log-app/` | React 19, TypeScript, Tailwind, React Router, TanStack Query |
 | API | `oz-dev-log-api/` | Express 5, 목(mock) 사용자·일지·크레딧 데이터 |
 | 구현 스펙 | [`PROJECT_SPEC.md`](./PROJECT_SPEC.md) | API·라우트·로컬/서버 일지 이원화 등 **현재 코드 기준** 상세 |
+| 배포 | [`DEPLOYMENT.md`](./DEPLOYMENT.md) | 배포 패턴(단일/분리/프록시)·CORS·Vite 프록시 한계 |
 | 기획 참고 | [`기획서.md`](./기획서.md) | 제품 방향·확장 아이디어 (구현과 다를 수 있음) |
 
 ---
@@ -76,40 +77,21 @@ npm run start:api  # API를 node로 실행 (배포·로컬 검증용)
 
 ---
 
-## 배포 시 참고 사항
+## 배포
 
-프론트(정적 파일)와 API는 **보통 별도 프로세스·도메인**으로 올리게 되므로 아래를 맞춰야 합니다.
+패턴별 절차(단일 Express, 정적+API 분리, 리버스 프록시, Docker, 서버리스), Vite 개발 프록시와 프로덕션 차이, CORS·환경 변수 정리는 **[`DEPLOYMENT.md`](./DEPLOYMENT.md)** 에 모아 두었습니다.
 
-### 프론트엔드 (Vite 빌드)
+요약만 필요하면:
 
-1. 빌드 시점에 `VITE_*`가 고정되므로, **배포 환경에 맞는 API 주소**를 넣고 빌드합니다.
-
-   ```bash
-   # 예: API가 https://api.example.com 일 때
-   echo 'VITE_API_BASE_URL=https://api.example.com' > oz-dev-log-app/.env.production
-   npm run build
-   ```
-
-2. **같은 도메인**에서 경로만 나눠 서빙하는 경우(예: Nginx로 `/api` → 백엔드, `/` → SPA)에는 상대 경로만으로도 가능할 수 있습니다. 이 경우 빌드 산출물이 API와 **동일 오리진**으로 요청되도록 리버스 프록시를 구성합니다.
-
-3. 빌드 결과는 `oz-dev-log-app/dist`입니다.
-
-### 백엔드 (Express)
-
-1. **`NODE_ENV=production`** 으로 실행하는 것을 권장합니다.
-2. **`CORS_ORIGIN`**: 실제 프론트가 띄워지는 **Origin**을 콤마로 구분해 넣습니다.  
-   (로컬이 아닌 프로덕션에서는 `localhost` 자동 허용 범위에만 의존하지 말고 명시하는 편이 안전합니다.)
-3. **`PORT`**: 호스팅 환경에 맞게 설정합니다.
-
-### 보안·운영
-
-- **`.env`는 커밋하지 마세요.** 루트 `.gitignore`에 포함되어 있습니다. 예시만 `*.env.example`으로 관리합니다.
-- API에 실제 DB·인증을 붙일 때는 토큰 검증, HTTPS, Rate limit 등을 별도로 설계해야 합니다.
+- 빌드 산출물: `oz-dev-log-app/dist`
+- 교차 오리진으로 API를 부를 때: 빌드에 **`VITE_API_BASE_URL`** 반영 + API **`CORS_ORIGIN`**(운영 시 명시 권장)
+- **`.env`는 커밋하지 마세요.**
 
 ---
 
 ## 문서 더 보기
 
+- [`DEPLOYMENT.md`](./DEPLOYMENT.md) — **배포 경우의 수·필수 조치**
 - [`PROJECT_SPEC.md`](./PROJECT_SPEC.md) — 엔드포인트, 타입, CORS, 로컬/API 일지 동작 등 **운영·개발용 스펙**
 - [`기획서.md`](./기획서.md) — 서비스 콘셉트 및 확장 아이디어
 
