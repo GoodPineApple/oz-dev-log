@@ -1,0 +1,20 @@
+{
+  "name": "oz-dev-log",
+  "private": true,
+  "description": "DevLog monorepo — app (Vite/React) + API (Express)",
+  "workspaces": [
+    "oz-dev-log-app",
+    "oz-dev-log-api"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n api,app -c blue,magenta \"npm run dev -w oz-dev-log-api\" \"npm run dev -w oz-dev-log-app\"",
+    "dev:app": "npm run dev -w oz-dev-log-app",
+    "dev:api": "npm run dev -w oz-dev-log-api",
+    "build": "npm run build -w oz-dev-log-app",
+    "lint": "npm run lint -w oz-dev-log-app",
+    "start:api": "npm run start -w oz-dev-log-api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

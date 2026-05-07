@@ -1,0 +1,73 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: system-ui, 'Segoe UI', Roboto, 'Apple SD Gothic Neo', sans-serif;
+  --color-surface: #fafafa;
+  --color-surface-dark: #14151a;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  @apply bg-white text-zinc-600 antialiased dark:bg-zinc-950 dark:text-zinc-400;
+}
+
+#root {
+  min-height: 100svh;
+}
+
+/* 마크다운 본문 (Typography 플러그인 없이 최소 스타일) */
+.md-prose {
+  @apply text-[15px] leading-relaxed text-zinc-700 dark:text-zinc-300;
+}
+.md-prose h1 {
+  @apply mt-6 text-2xl font-semibold tracking-tight text-zinc-900 first:mt-0 dark:text-zinc-50;
+}
+.md-prose h2 {
+  @apply mt-5 text-xl font-semibold text-zinc-900 dark:text-zinc-50;
+}
+.md-prose h3 {
+  @apply mt-4 text-lg font-medium text-zinc-900 dark:text-zinc-50;
+}
+.md-prose p {
+  @apply my-3;
+}
+.md-prose ul {
+  @apply my-3 list-disc pl-6;
+}
+.md-prose ol {
+  @apply my-3 list-decimal pl-6;
+}
+.md-prose li {
+  @apply my-1;
+}
+.md-prose a {
+  @apply text-violet-600 underline decoration-violet-300 underline-offset-2 hover:text-violet-700 dark:text-violet-400 dark:decoration-violet-600;
+}
+.md-prose code {
+  @apply rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[0.9em] text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200;
+}
+.md-prose pre {
+  @apply my-4 overflow-x-auto rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900;
+}
+.md-prose pre code {
+  @apply bg-transparent p-0 text-sm;
+}
+.md-prose blockquote {
+  @apply my-4 border-l-4 border-violet-200 pl-4 text-zinc-600 italic dark:border-violet-800 dark:text-zinc-400;
+}
+.md-prose table {
+  @apply my-4 w-full border-collapse text-sm;
+}
+.md-prose th,
+.md-prose td {
+  @apply border border-zinc-200 px-3 py-2 dark:border-zinc-700;
+}
+.md-prose th {
+  @apply bg-zinc-50 text-left font-medium dark:bg-zinc-900;
+}
