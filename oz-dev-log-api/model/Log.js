@@ -1,16 +1,16 @@
 /**
- * logs 테이블에 대응하는 도메인 객체입니다.
+ * logs 컬렉션에 대응하는 도메인 객체입니다.
  *
  * @typedef {object} Log
- * @property {number} id — logs.id (SERIAL)
- * @property {string} userId — logs.user_id (UUID, users 참조)
- * @property {string} title — logs.title
- * @property {string} content — logs.content
- * @property {string} createdAt — logs.created_at (ISO 8601)
+ * @property {number} id — 문서의 시퀀스 id (API용)
+ * @property {string} userId — users._id 참조
+ * @property {string} title
+ * @property {string} content
+ * @property {string} createdAt — ISO 8601
  */
 
-import { DataTypes } from "sequelize";
-import { sequelize } from "./database.js";
+import mongoose from "mongoose";
+import { nextSeq } from "./Counter.js";
 
 /**
  * @param {Partial<Log> & Pick<Log, 'userId' | 'title' | 'content'> & { id?: number }} input
@@ -39,52 +39,45 @@ export function isLog(row) {
   );
 }
 
-/** Sequelize — logs 테이블 */
-export const LogModel = sequelize.define(
-  "Log",
+const logSchema = new mongoose.Schema(
   {
-    id: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-    userId: {
-      type: DataTypes.CHAR(36),
-      allowNull: false,
-      field: "user_id",
-      references: { model: "users", key: "id" },
-    },
-    title: {
-      type: DataTypes.STRING(500),
-      allowNull: false,
-    },
-    content: {
-      type: DataTypes.TEXT("long"),
-      allowNull: false,
-    },
-    createdAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      field: "created_at",
-    },
+    id: { type: Number, unique: true, index: true },
+    userId: { type: String, required: true, index: true, ref: "User" },
+    title: { type: String, required: true },
+    content: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now },
   },
-  {
-    tableName: "logs",
-    timestamps: false,
-  },
+  { collection: "logs", versionKey: false },
 );
 
+logSchema.pre("save", async function () {
+  if (this.isNew && (this.id == null || this.id === undefined)) {
+    this.id = await nextSeq("log");
+  }
+});
+
+export const LogModel =
+  mongoose.models.Log ?? mongoose.model("Log", logSchema);
+
 /**
- * @param {import("sequelize").Model<Log, Log> | Log | null | undefined} row
+ * @param {unknown} doc
+ */
+function toPlain(doc) {
+  if (doc == null) return null;
+  if (typeof /** @type {{ toObject?: () => object }} */ (doc).toObject === "function") {
+    return /** @type {{ toObject: () => object }} */ (doc).toObject();
+  }
+  return /** @type {Record<string, unknown>} */ (doc);
+}
+
+/**
+ * @param {unknown} row
  * @returns {Log | null}
  */
 export function logToJSON(row) {
-  if (row == null) return null;
-  const plain =
-    typeof row.get === "function"
-      ? /** @type {Log & { createdAt?: Date }} */ (row.get({ plain: true }))
-      : /** @type {Log & { createdAt?: Date }} */ (row);
-  const created = plain.createdAt;
+  const plain = toPlain(row);
+  if (!plain) return null;
+  const created = /** @type {Date | string | undefined} */ (plain.createdAt);
   const createdAt =
     created instanceof Date
       ? created.toISOString()
@@ -93,9 +86,9 @@ export function logToJSON(row) {
         : new Date(/** @type {string} */ (created)).toISOString();
   return {
     id: Number(plain.id),
-    userId: plain.userId,
-    title: plain.title,
-    content: plain.content,
+    userId: /** @type {string} */ (plain.userId),
+    title: /** @type {string} */ (plain.title),
+    content: /** @type {string} */ (plain.content),
     createdAt,
   };
 }

@@ -6,8 +6,11 @@ import {
 } from "../model/mock-data.js";
 import { useMockData } from "../model/runtimeConfig.js";
 import { UserModel, userToJSON } from "../model/User.js";
-import { logToJSON } from "../model/Log.js";
-import { creditTransactionToJSON } from "../model/CreditTransaction.js";
+import { LogModel, logToJSON } from "../model/Log.js";
+import {
+  CreditTransactionModel,
+  creditTransactionToJSON,
+} from "../model/CreditTransaction.js";
 
 const router = express.Router();
 
@@ -17,9 +20,7 @@ router.get("/", async (_req, res) => {
     return res.json([...mockUsers]);
   }
   try {
-    const rows = await UserModel.findAll({
-      order: [["createdAt", "ASC"]],
-    });
+    const rows = await UserModel.find().sort({ createdAt: 1 }).lean();
     res.json(rows.map((r) => userToJSON(r)).filter(Boolean));
   } catch (err) {
     console.error(err);
@@ -41,13 +42,13 @@ userLogsRouter.get("/", async (req, res) => {
     return res.json(logs);
   }
   try {
-    const user = await UserModel.findByPk(userId);
+    const user = await UserModel.findById(userId).lean();
     if (!user) {
       return res.status(404).json({ error: "사용자를 찾을 수 없습니다." });
     }
-    const rows = await user.getLogs({
-      order: [["createdAt", "DESC"]],
-    });
+    const rows = await LogModel.find({ userId })
+      .sort({ createdAt: -1 })
+      .lean();
     res.json(rows.map((r) => logToJSON(r)).filter(Boolean));
   } catch (err) {
     console.error(err);
@@ -71,13 +72,13 @@ userCreditsRouter.get("/", async (req, res) => {
     return res.json(rows);
   }
   try {
-    const user = await UserModel.findByPk(userId);
+    const user = await UserModel.findById(userId).lean();
     if (!user) {
       return res.status(404).json({ error: "사용자를 찾을 수 없습니다." });
     }
-    const rows = await user.getCreditTransactions({
-      order: [["createdAt", "DESC"]],
-    });
+    const rows = await CreditTransactionModel.find({ userId })
+      .sort({ createdAt: -1 })
+      .lean();
     res.json(rows.map((r) => creditTransactionToJSON(r)).filter(Boolean));
   } catch (err) {
     console.error(err);
@@ -97,7 +98,7 @@ router.get("/:userId", async (req, res) => {
     return res.json(user);
   }
   try {
-    const row = await UserModel.findByPk(req.params.userId);
+    const row = await UserModel.findById(req.params.userId).lean();
     const user = userToJSON(row);
     if (!user) {
       return res.status(404).json({ error: "사용자를 찾을 수 없습니다." });

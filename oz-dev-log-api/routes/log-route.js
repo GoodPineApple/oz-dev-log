@@ -2,7 +2,7 @@ import express from "express";
 import { mockLogs, mockAttachments } from "../model/mock-data.js";
 import { useMockData } from "../model/runtimeConfig.js";
 import { LogModel, logToJSON } from "../model/Log.js";
-import { attachmentToJSON } from "../model/Attachment.js";
+import { AttachmentModel, attachmentToJSON } from "../model/Attachment.js";
 
 const router = express.Router();
 
@@ -22,12 +22,9 @@ router.get("/", async (req, res) => {
     return res.json(items);
   }
   try {
-    const where =
+    const filter =
       typeof userId === "string" && userId.length > 0 ? { userId } : {};
-    const rows = await LogModel.findAll({
-      where,
-      order: [["createdAt", "DESC"]],
-    });
+    const rows = await LogModel.find(filter).sort({ createdAt: -1 }).lean();
     res.json(rows.map((r) => logToJSON(r)).filter(Boolean));
   } catch (err) {
     console.error(err);
@@ -50,13 +47,13 @@ router.get("/:logId/attachments", async (req, res) => {
     return res.json(attachments);
   }
   try {
-    const log = await LogModel.findByPk(logId);
+    const log = await LogModel.findOne({ id: logId }).lean();
     if (!log) {
       return res.status(404).json({ error: "일지를 찾을 수 없습니다." });
     }
-    const rows = await log.getAttachments({
-      order: [["createdAt", "ASC"]],
-    });
+    const rows = await AttachmentModel.find({ logId })
+      .sort({ createdAt: 1 })
+      .lean();
     res.json(rows.map((r) => attachmentToJSON(r)).filter(Boolean));
   } catch (err) {
     console.error(err);
@@ -78,7 +75,7 @@ router.get("/:logId", async (req, res) => {
     return res.json(log);
   }
   try {
-    const row = await LogModel.findByPk(logId);
+    const row = await LogModel.findOne({ id: logId }).lean();
     const log = logToJSON(row);
     if (!log) {
       return res.status(404).json({ error: "일지를 찾을 수 없습니다." });

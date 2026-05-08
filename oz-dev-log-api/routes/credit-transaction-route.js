@@ -1,7 +1,10 @@
 import express from "express";
 import { mockCreditTransactions } from "../model/mock-data.js";
 import { useMockData } from "../model/runtimeConfig.js";
-import { CreditTransactionModel, creditTransactionToJSON } from "../model/CreditTransaction.js";
+import {
+  CreditTransactionModel,
+  creditTransactionToJSON,
+} from "../model/CreditTransaction.js";
 
 const router = express.Router();
 
@@ -21,12 +24,11 @@ router.get("/", async (req, res) => {
     return res.json(items);
   }
   try {
-    const where =
+    const filter =
       typeof userId === "string" && userId.length > 0 ? { userId } : {};
-    const rows = await CreditTransactionModel.findAll({
-      where,
-      order: [["createdAt", "DESC"]],
-    });
+    const rows = await CreditTransactionModel.find(filter)
+      .sort({ createdAt: -1 })
+      .lean();
     res.json(rows.map((r) => creditTransactionToJSON(r)).filter(Boolean));
   } catch (err) {
     console.error(err);
@@ -48,7 +50,7 @@ router.get("/:id", async (req, res) => {
     return res.json(row);
   }
   try {
-    const row = await CreditTransactionModel.findByPk(id);
+    const row = await CreditTransactionModel.findOne({ id }).lean();
     const tx = creditTransactionToJSON(row);
     if (!tx) {
       return res.status(404).json({ error: "내역을 찾을 수 없습니다." });

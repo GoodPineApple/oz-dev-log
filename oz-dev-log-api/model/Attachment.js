@@ -1,21 +1,21 @@
 /**
- * attachments 테이블에 대응하는 도메인 객체입니다.
+ * attachments 컬렉션에 대응하는 도메인 객체입니다.
  *
  * @typedef {'image' | 'file'} AttachmentTypeValue
  *
  * @typedef {object} Attachment
- * @property {number} id — attachments.id (SERIAL)
- * @property {number} logId — attachments.log_id
- * @property {string} fileName — attachments.file_name
- * @property {string} fileUrl — attachments.file_url
- * @property {AttachmentTypeValue} fileType — attachments.file_type
- * @property {number} fileSize — attachments.file_size (바이트)
- * @property {string} createdAt — attachments.created_at (ISO 8601)
+ * @property {number} id
+ * @property {number} logId — logs.id (숫자)
+ * @property {string} fileName
+ * @property {string} fileUrl
+ * @property {AttachmentTypeValue} fileType
+ * @property {number} fileSize
+ * @property {string} createdAt
  */
 
-import { DataTypes } from "sequelize";
-import { sequelize } from "./database.js";
+import mongoose from "mongoose";
 import { AttachmentType, isAttachmentType } from "./enums.js";
+import { nextSeq } from "./Counter.js";
 
 /**
  * @param {Partial<Attachment> & Pick<Attachment, 'logId' | 'fileName' | 'fileUrl' | 'fileType' | 'fileSize'> & { id?: number }} input
@@ -55,67 +55,47 @@ export function isAttachment(row) {
   );
 }
 
-/** Sequelize — attachments 테이블 */
-export const AttachmentModel = sequelize.define(
-  "Attachment",
+const attachmentSchema = new mongoose.Schema(
   {
-    id: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-    logId: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      allowNull: false,
-      field: "log_id",
-      references: { model: "logs", key: "id" },
-    },
-    fileName: {
-      type: DataTypes.STRING(500),
-      allowNull: false,
-      field: "file_name",
-    },
-    fileUrl: {
-      type: DataTypes.STRING(2048),
-      allowNull: false,
-      field: "file_url",
-    },
-    fileType: {
-      type: DataTypes.ENUM("image", "file"),
-      allowNull: false,
-      field: "file_type",
-    },
-    fileSize: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      allowNull: false,
-      defaultValue: 0,
-      field: "file_size",
-    },
-    createdAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      field: "created_at",
-    },
+    id: { type: Number, unique: true, index: true },
+    logId: { type: Number, required: true, index: true },
+    fileName: { type: String, required: true },
+    fileUrl: { type: String, required: true },
+    fileType: { type: String, required: true, enum: ["image", "file"] },
+    fileSize: { type: Number, required: true, min: 0, default: 0 },
+    createdAt: { type: Date, default: Date.now },
   },
-  {
-    tableName: "attachments",
-    timestamps: false,
-  },
+  { collection: "attachments", versionKey: false },
 );
 
+attachmentSchema.pre("save", async function () {
+  if (this.isNew && (this.id == null || this.id === undefined)) {
+    this.id = await nextSeq("attachment");
+  }
+});
+
+export const AttachmentModel =
+  mongoose.models.Attachment ?? mongoose.model("Attachment", attachmentSchema);
+
 /**
- * @param {import("sequelize").Model<Attachment, Attachment> | Attachment | null | undefined} row
+ * @param {unknown} doc
+ */
+function toPlain(doc) {
+  if (doc == null) return null;
+  if (typeof /** @type {{ toObject?: () => object }} */ (doc).toObject === "function") {
+    return /** @type {{ toObject: () => object }} */ (doc).toObject();
+  }
+  return /** @type {Record<string, unknown>} */ (doc);
+}
+
+/**
+ * @param {unknown} row
  * @returns {Attachment | null}
  */
 export function attachmentToJSON(row) {
-  if (row == null) return null;
-  const plain =
-    typeof row.get === "function"
-      ? /** @type {Attachment & { createdAt?: Date }} */ (
-          row.get({ plain: true })
-        )
-      : /** @type {Attachment & { createdAt?: Date }} */ (row);
-  const created = plain.createdAt;
+  const plain = toPlain(row);
+  if (!plain) return null;
+  const created = /** @type {Date | string | undefined} */ (plain.createdAt);
   const createdAt =
     created instanceof Date
       ? created.toISOString()
@@ -125,9 +105,9 @@ export function attachmentToJSON(row) {
   return {
     id: Number(plain.id),
     logId: Number(plain.logId),
-    fileName: plain.fileName,
-    fileUrl: plain.fileUrl,
-    fileType: plain.fileType,
+    fileName: /** @type {string} */ (plain.fileName),
+    fileUrl: /** @type {string} */ (plain.fileUrl),
+    fileType: /** @type {'image' | 'file'} */ (plain.fileType),
     fileSize: Number(plain.fileSize),
     createdAt,
   };

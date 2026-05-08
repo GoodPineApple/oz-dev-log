@@ -1,21 +1,21 @@
 /**
- * credit_transactions 테이블에 대응하는 도메인 객체입니다.
+ * credit_transactions 컬렉션에 대응하는 도메인 객체입니다.
  *
  * @typedef {'earn' | 'spend' | 'bonus' | 'adjust'} CreditTypeValue
  *
  * @typedef {object} CreditTransaction
- * @property {number} id — credit_transactions.id (SERIAL)
- * @property {string} userId — credit_transactions.user_id
- * @property {number | null} logId — credit_transactions.log_id (nullable)
- * @property {number} amount — credit_transactions.amount (적립은 양수, 사용은 음수 등 부호로 구분)
- * @property {CreditTypeValue} type — credit_transactions.type
- * @property {string | null} [description] — credit_transactions.description
- * @property {string} createdAt — credit_transactions.created_at (ISO 8601)
+ * @property {number} id
+ * @property {string} userId
+ * @property {number | null} logId
+ * @property {number} amount
+ * @property {CreditTypeValue} type
+ * @property {string | null} [description]
+ * @property {string} createdAt
  */
 
-import { DataTypes } from "sequelize";
-import { sequelize } from "./database.js";
+import mongoose from "mongoose";
 import { CreditType, isCreditType } from "./enums.js";
+import { nextSeq } from "./Counter.js";
 
 /**
  * @param {Partial<CreditTransaction> & Pick<CreditTransaction, 'userId' | 'amount' | 'type'> & { id?: number }} input
@@ -56,64 +56,52 @@ export function isCreditTransaction(row) {
   );
 }
 
-/** Sequelize — credit_transactions 테이블 */
-export const CreditTransactionModel = sequelize.define(
-  "CreditTransaction",
+const creditTransactionSchema = new mongoose.Schema(
   {
-    id: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-    userId: {
-      type: DataTypes.CHAR(36),
-      allowNull: false,
-      field: "user_id",
-      references: { model: "users", key: "id" },
-    },
-    logId: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      allowNull: true,
-      field: "log_id",
-      references: { model: "logs", key: "id" },
-    },
-    amount: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
+    id: { type: Number, unique: true, index: true },
+    userId: { type: String, required: true, index: true, ref: "User" },
+    logId: { type: Number, default: null, index: true },
+    amount: { type: Number, required: true },
     type: {
-      type: DataTypes.ENUM("earn", "spend", "bonus", "adjust"),
-      allowNull: false,
+      type: String,
+      required: true,
+      enum: ["earn", "spend", "bonus", "adjust"],
     },
-    description: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-    createdAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      field: "created_at",
-    },
+    description: { type: String, default: null },
+    createdAt: { type: Date, default: Date.now },
   },
-  {
-    tableName: "credit_transactions",
-    timestamps: false,
-  },
+  { collection: "credit_transactions", versionKey: false },
 );
 
+creditTransactionSchema.pre("save", async function () {
+  if (this.isNew && (this.id == null || this.id === undefined)) {
+    this.id = await nextSeq("creditTransaction");
+  }
+});
+
+export const CreditTransactionModel =
+  mongoose.models.CreditTransaction ??
+  mongoose.model("CreditTransaction", creditTransactionSchema);
+
 /**
- * @param {import("sequelize").Model<CreditTransaction, CreditTransaction> | CreditTransaction | null | undefined} row
+ * @param {unknown} doc
+ */
+function toPlain(doc) {
+  if (doc == null) return null;
+  if (typeof /** @type {{ toObject?: () => object }} */ (doc).toObject === "function") {
+    return /** @type {{ toObject: () => object }} */ (doc).toObject();
+  }
+  return /** @type {Record<string, unknown>} */ (doc);
+}
+
+/**
+ * @param {unknown} row
  * @returns {CreditTransaction | null}
  */
 export function creditTransactionToJSON(row) {
-  if (row == null) return null;
-  const plain =
-    typeof row.get === "function"
-      ? /** @type {CreditTransaction & { createdAt?: Date }} */ (
-          row.get({ plain: true })
-        )
-      : /** @type {CreditTransaction & { createdAt?: Date }} */ (row);
-  const created = plain.createdAt;
+  const plain = toPlain(row);
+  if (!plain) return null;
+  const created = /** @type {Date | string | undefined} */ (plain.createdAt);
   const createdAt =
     created instanceof Date
       ? created.toISOString()
@@ -123,11 +111,11 @@ export function creditTransactionToJSON(row) {
   const logId = plain.logId;
   return {
     id: Number(plain.id),
-    userId: plain.userId,
+    userId: /** @type {string} */ (plain.userId),
     logId: logId == null ? null : Number(logId),
     amount: Number(plain.amount),
-    type: plain.type,
-    description: plain.description ?? null,
+    type: /** @type {'earn' | 'spend' | 'bonus' | 'adjust'} */ (plain.type),
+    description: plain.description == null ? null : String(plain.description),
     createdAt,
   };
 }
