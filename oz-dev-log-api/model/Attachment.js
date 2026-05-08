@@ -13,6 +13,8 @@
  * @property {string} createdAt — attachments.created_at (ISO 8601)
  */
 
+import { DataTypes } from "sequelize";
+import { sequelize } from "./database.js";
 import { AttachmentType, isAttachmentType } from "./enums.js";
 
 /**
@@ -51,6 +53,84 @@ export function isAttachment(row) {
     a.fileSize >= 0 &&
     typeof a.createdAt === "string"
   );
+}
+
+/** Sequelize — attachments 테이블 */
+export const AttachmentModel = sequelize.define(
+  "Attachment",
+  {
+    id: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      autoIncrement: true,
+      primaryKey: true,
+    },
+    logId: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: false,
+      field: "log_id",
+      references: { model: "logs", key: "id" },
+    },
+    fileName: {
+      type: DataTypes.STRING(500),
+      allowNull: false,
+      field: "file_name",
+    },
+    fileUrl: {
+      type: DataTypes.STRING(2048),
+      allowNull: false,
+      field: "file_url",
+    },
+    fileType: {
+      type: DataTypes.ENUM("image", "file"),
+      allowNull: false,
+      field: "file_type",
+    },
+    fileSize: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: false,
+      defaultValue: 0,
+      field: "file_size",
+    },
+    createdAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      field: "created_at",
+    },
+  },
+  {
+    tableName: "attachments",
+    timestamps: false,
+  },
+);
+
+/**
+ * @param {import("sequelize").Model<Attachment, Attachment> | Attachment | null | undefined} row
+ * @returns {Attachment | null}
+ */
+export function attachmentToJSON(row) {
+  if (row == null) return null;
+  const plain =
+    typeof row.get === "function"
+      ? /** @type {Attachment & { createdAt?: Date }} */ (
+          row.get({ plain: true })
+        )
+      : /** @type {Attachment & { createdAt?: Date }} */ (row);
+  const created = plain.createdAt;
+  const createdAt =
+    created instanceof Date
+      ? created.toISOString()
+      : typeof created === "string"
+        ? created
+        : new Date(/** @type {string} */ (created)).toISOString();
+  return {
+    id: Number(plain.id),
+    logId: Number(plain.logId),
+    fileName: plain.fileName,
+    fileUrl: plain.fileUrl,
+    fileType: plain.fileType,
+    fileSize: Number(plain.fileSize),
+    createdAt,
+  };
 }
 
 export { AttachmentType };

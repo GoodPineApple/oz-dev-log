@@ -10,6 +10,8 @@
  */
 
 import crypto from "crypto";
+import { DataTypes } from "sequelize";
+import { sequelize } from "./database.js";
 
 /**
  * @param {Partial<User> & Pick<User, 'email' | 'nickname'>} input
@@ -41,4 +43,66 @@ export function isUser(row) {
     u.totalCredits >= 0 &&
     typeof u.createdAt === "string"
   );
+}
+
+/** Sequelize — users 테이블 */
+export const UserModel = sequelize.define(
+  "User",
+  {
+    id: {
+      type: DataTypes.CHAR(36),
+      primaryKey: true,
+    },
+    email: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+      unique: true,
+    },
+    nickname: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+    },
+    totalCredits: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: false,
+      defaultValue: 0,
+      field: "total_credits",
+    },
+    createdAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      field: "created_at",
+    },
+  },
+  {
+    tableName: "users",
+    timestamps: false,
+  },
+);
+
+/**
+ * API/프론트용 JSON (기존 mock과 동일한 키)
+ * @param {import("sequelize").Model<User, User> | User | null | undefined} row
+ * @returns {User | null}
+ */
+export function userToJSON(row) {
+  if (row == null) return null;
+  const plain =
+    typeof row.get === "function"
+      ? /** @type {User & { createdAt?: Date }} */ (row.get({ plain: true }))
+      : /** @type {User & { createdAt?: Date }} */ (row);
+  const created = plain.createdAt;
+  const createdAt =
+    created instanceof Date
+      ? created.toISOString()
+      : typeof created === "string"
+        ? created
+        : new Date(/** @type {string} */ (created)).toISOString();
+  return {
+    id: plain.id,
+    email: plain.email,
+    nickname: plain.nickname,
+    totalCredits: Number(plain.totalCredits),
+    createdAt,
+  };
 }
