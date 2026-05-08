@@ -1,4 +1,4 @@
-# oz-dev-log (DevLog)
+# oz-dev-log (개발일지)
 
 개발 일지(TIL)를 남기고, 목록·상세·로컬 작성·크레딧 대시보드 등을 제공하는 **풀스택 데모/MVP** 저장소입니다.  
 프론트엔드는 **Vite + React**, 백엔드는 **Express**이며, npm **workspaces**로 한 저장소에서 관리합니다.
