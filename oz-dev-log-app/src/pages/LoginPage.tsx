@@ -2,13 +2,17 @@ import { useQuery } from '@tanstack/react-query'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { fetchUsers } from '../api/devlog'
 import { getStoredUserId, setStoredUserId } from '../lib/auth'
+import { BACKEND_LABEL } from '../lib/backend'
+import { useBackend } from '../hooks/useBackend'
+import { BackendSwitcher } from '../components/BackendSwitcher'
 
 export function LoginPage() {
   const navigate = useNavigate()
   const existing = getStoredUserId()
+  const [backend] = useBackend()
 
-  const { data: users, isLoading, isError, refetch } = useQuery({
-    queryKey: ['users'],
+  const { data: users, isLoading, isError, refetch, error } = useQuery({
+    queryKey: ['users', backend],
     queryFn: fetchUsers,
   })
 
@@ -23,15 +27,19 @@ export function LoginPage() {
           DevLog
         </h1>
         <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-          오늘 배운 것을 짧게 남기고, 성장 궤적을 모아보세요.
+          MySQL과 MongoDB, 두 백엔드에 같은 화면이 어떻게 붙는지 비교해 보세요.
         </p>
 
-        <div className="mt-10 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="mt-6 rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <BackendSwitcher />
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
           <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
-            소셜 로그인 (데모)
+            데모 사용자 선택
           </p>
           <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-            Firebase 연동 전까지는 목업 사용자로 체험할 수 있습니다.
+            현재 백엔드: <strong>{BACKEND_LABEL[backend]}</strong>
           </p>
 
           {isLoading && (
@@ -40,11 +48,15 @@ export function LoginPage() {
           {isError && (
             <div className="mt-6 space-y-3">
               <p className="text-sm text-red-600 dark:text-red-400">
-                API에 연결할 수 없습니다. Express 서버가{' '}
+                {error instanceof Error
+                  ? error.message
+                  : '백엔드에 연결할 수 없습니다.'}
+              </p>
+              <p className="text-xs text-zinc-500">
+                백엔드가 실행 중인지 확인하세요{' '}
                 <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
-                  localhost:3000
+                  npm run dev:{backend}
                 </code>
-                에서 실행 중인지 확인하세요.
               </p>
               <button
                 type="button"
@@ -76,10 +88,6 @@ export function LoginPage() {
               ))}
             </ul>
           )}
-
-          <p className="mt-6 text-[11px] leading-relaxed text-zinc-400">
-            실제 서비스에서는 Google 로그인 버튼으로 Firebase Auth에 연결합니다.
-          </p>
         </div>
       </div>
     </div>

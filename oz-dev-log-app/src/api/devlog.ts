@@ -1,5 +1,12 @@
 import { fetchJson } from './client'
-import type { ApiLog, Attachment, CreditTransaction, User } from '../types'
+import type {
+  ApiLog,
+  Attachment,
+  CreditTransaction,
+  LogCreateInput,
+  LogUpdateInput,
+  User,
+} from '../types'
 
 export function fetchUsers() {
   return fetchJson<User[]>('/users')
@@ -14,15 +21,39 @@ export function fetchLogs(userId: string) {
   return fetchJson<ApiLog[]>(`/logs?${q}`)
 }
 
-export function fetchLog(logId: number) {
-  return fetchJson<ApiLog>(`/logs/${logId}`)
+export function fetchLog(logId: string) {
+  return fetchJson<ApiLog>(`/logs/${encodeURIComponent(logId)}`)
 }
 
-export function fetchLogAttachments(logId: number) {
-  return fetchJson<Attachment[]>(`/logs/${logId}/attachments`)
+export function fetchLogAttachments(logId: string) {
+  return fetchJson<Attachment[]>(
+    `/logs/${encodeURIComponent(logId)}/attachments`,
+  )
 }
 
 export function fetchCreditTransactions(userId: string) {
   const q = new URLSearchParams({ userId })
   return fetchJson<CreditTransaction[]>(`/credit-transactions?${q}`)
+}
+
+export function createLog(input: LogCreateInput) {
+  return fetchJson<ApiLog>('/logs', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export function updateLog(logId: string, input: LogUpdateInput) {
+  return fetchJson<ApiLog>(`/logs/${encodeURIComponent(logId)}`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  })
+}
+
+export function deleteLog(logId: string, userId: string) {
+  const q = new URLSearchParams({ userId })
+  return fetchJson<{ ok: true }>(
+    `/logs/${encodeURIComponent(logId)}?${q}`,
+    { method: 'DELETE' },
+  )
 }

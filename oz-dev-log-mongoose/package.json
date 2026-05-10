@@ -1,0 +1,20 @@
+{
+  "name": "oz-dev-log-mongoose",
+  "version": "1.0.0",
+  "description": "DevLog API backed by MongoDB via Mongoose ODM (학습용 예제: NoSQL/도큐먼트)",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "type": "module",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mongoose": "^8.7.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}

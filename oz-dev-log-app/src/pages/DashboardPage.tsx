@@ -1,7 +1,12 @@
 import { useQueries, useQuery } from '@tanstack/react-query'
-import { fetchCreditTransactions, fetchLogAttachments, fetchLogs } from '../api/devlog'
-import { loadLocalLogs } from '../lib/localLogs'
+import {
+  fetchCreditTransactions,
+  fetchLogAttachments,
+  fetchLogs,
+} from '../api/devlog'
 import { useAuthOutlet } from '../hooks/useAuthOutlet'
+import { useBackend } from '../hooks/useBackend'
+import { BACKEND_LABEL } from '../lib/backend'
 
 function formatWhen(iso: string) {
   return new Date(iso).toLocaleString('ko-KR', {
@@ -19,22 +24,21 @@ const typeLabel: Record<string, string> = {
 
 export function DashboardPage() {
   const { user } = useAuthOutlet()
+  const [backend] = useBackend()
 
-  const { data: apiLogs = [] } = useQuery({
-    queryKey: ['logs', user.id],
+  const { data: logs = [] } = useQuery({
+    queryKey: ['logs', backend, user.id],
     queryFn: () => fetchLogs(user.id),
   })
 
   const { data: txs = [] } = useQuery({
-    queryKey: ['credit-transactions', user.id],
+    queryKey: ['credit-transactions', backend, user.id],
     queryFn: () => fetchCreditTransactions(user.id),
   })
 
-  const localLogs = loadLocalLogs(user.id)
-
   const attQueries = useQueries({
-    queries: apiLogs.map((l) => ({
-      queryKey: ['attachments', l.id] as const,
+    queries: logs.map((l) => ({
+      queryKey: ['attachments', backend, l.id] as const,
       queryFn: () => fetchLogAttachments(l.id),
     })),
   })
@@ -49,7 +53,8 @@ export function DashboardPage() {
           마이 대시보드
         </h1>
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          크레딧과 첨부를 한곳에서 확인합니다. (크레딧·서버 일지는 API 목업 기준)
+          {BACKEND_LABEL[backend]} 백엔드의 크레딧과 첨부 데이터를 한 곳에서
+          확인합니다.
         </p>
       </div>
 
@@ -75,7 +80,7 @@ export function DashboardPage() {
 
       <section>
         <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-          서버에 연결된 첨부 파일
+          내 일지의 첨부 파일
         </h2>
         {attachments.length === 0 ? (
           <p className="mt-2 text-sm text-zinc-500">
@@ -110,49 +115,46 @@ export function DashboardPage() {
 
       <section>
         <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-          이 기기에만 있는 일지
-        </h2>
-        <p className="mt-1 text-xs text-zinc-500">
-          {localLogs.length}건 — 브라우저 로컬 저장소에 있습니다.
-        </p>
-      </section>
-
-      <section>
-        <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
           크레딧 내역
         </h2>
-        <ul className="mt-3 divide-y divide-zinc-200 rounded-2xl border border-zinc-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-900">
-          {[...txs]
-            .sort(
-              (a, b) =>
-                new Date(b.createdAt).getTime() -
-                new Date(a.createdAt).getTime(),
-            )
-            .map((t) => (
-              <li
-                key={t.id}
-                className="flex flex-wrap items-baseline justify-between gap-2 px-4 py-3 text-sm"
-              >
-                <div>
-                  <span className="font-medium text-zinc-900 dark:text-zinc-100">
-                    {t.amount > 0 ? '+' : ''}
-                    {t.amount} CP
-                  </span>
-                  <span className="ml-2 text-xs text-zinc-500">
-                    {typeLabel[t.type] ?? t.type}
-                  </span>
-                  {t.description && (
-                    <p className="mt-0.5 text-xs text-zinc-500">
-                      {t.description}
-                    </p>
-                  )}
-                </div>
-                <time className="text-xs text-zinc-400">
-                  {formatWhen(t.createdAt)}
-                </time>
-              </li>
-            ))}
-        </ul>
+        {txs.length === 0 ? (
+          <p className="mt-2 text-sm text-zinc-500">
+            아직 적립/사용 내역이 없습니다.
+          </p>
+        ) : (
+          <ul className="mt-3 divide-y divide-zinc-200 rounded-2xl border border-zinc-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-900">
+            {[...txs]
+              .sort(
+                (a, b) =>
+                  new Date(b.createdAt).getTime() -
+                  new Date(a.createdAt).getTime(),
+              )
+              .map((t) => (
+                <li
+                  key={t.id}
+                  className="flex flex-wrap items-baseline justify-between gap-2 px-4 py-3 text-sm"
+                >
+                  <div>
+                    <span className="font-medium text-zinc-900 dark:text-zinc-100">
+                      {t.amount > 0 ? '+' : ''}
+                      {t.amount} CP
+                    </span>
+                    <span className="ml-2 text-xs text-zinc-500">
+                      {typeLabel[t.type] ?? t.type}
+                    </span>
+                    {t.description && (
+                      <p className="mt-0.5 text-xs text-zinc-500">
+                        {t.description}
+                      </p>
+                    )}
+                  </div>
+                  <time className="text-xs text-zinc-400">
+                    {formatWhen(t.createdAt)}
+                  </time>
+                </li>
+              ))}
+          </ul>
+        )}
       </section>
     </div>
   )

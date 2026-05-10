@@ -1,6 +1,7 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import type { User } from '../types'
 import type { AuthOutletContext } from '../hooks/useAuthOutlet'
+import { BackendSwitcher } from './BackendSwitcher'
 
 export function AppLayout({ user, onLogout }: { user: User; onLogout: () => void }) {
   const linkClass = ({ isActive }: { isActive: boolean }) =>
@@ -14,7 +15,7 @@ export function AppLayout({ user, onLogout }: { user: User; onLogout: () => void
   return (
     <div className="min-h-svh bg-zinc-50 dark:bg-zinc-950">
       <header className="sticky top-0 z-40 border-b border-zinc-200/80 bg-white/90 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90">
-        <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-3">
+        <div className="mx-auto flex max-w-2xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <Link
             to="/"
             className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-50"
@@ -48,12 +49,15 @@ export function AppLayout({ user, onLogout }: { user: User; onLogout: () => void
             </button>
           </div>
         </div>
+        <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 pb-3">
+          <BackendSwitcher />
+        </div>
       </header>
       <main className="mx-auto max-w-2xl px-4 py-8">
         <Outlet context={{ user } satisfies AuthOutletContext} />
       </main>
       <footer className="border-t border-zinc-200 py-8 text-center text-xs text-zinc-400 dark:border-zinc-800">
-        DevLog · 성장 일지 MVP
+        DevLog · MySQL/MongoDB 비교 학습용
       </footer>
     </div>
   )

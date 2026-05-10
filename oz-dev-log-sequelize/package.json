@@ -1,0 +1,21 @@
+{
+  "name": "oz-dev-log-sequelize",
+  "version": "1.0.0",
+  "description": "DevLog API backed by MySQL via Sequelize ORM (학습용 예제: MySQL/관계형)",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "type": "module",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mysql2": "^3.22.3",
+    "sequelize": "^6.37.8"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}

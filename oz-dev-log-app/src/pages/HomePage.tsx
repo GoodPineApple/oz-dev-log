@@ -1,10 +1,10 @@
-import { useMemo, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { fetchLogs } from '../api/devlog'
-import { loadLocalLogs } from '../lib/localLogs'
-import { mergeAndSort } from '../lib/mergeLogs'
 import { useAuthOutlet } from '../hooks/useAuthOutlet'
+import { useBackend } from '../hooks/useBackend'
+import { BACKEND_LABEL } from '../lib/backend'
 
 const PAGE_SIZE = 8
 
@@ -18,25 +18,14 @@ function formatWhen(iso: string) {
 
 function HomePageInner() {
   const { user } = useAuthOutlet()
-  const { data: apiLogs = [], isLoading } = useQuery({
-    queryKey: ['logs', user.id],
+  const [backend] = useBackend()
+  const { data: logs = [], isLoading, isError, error } = useQuery({
+    queryKey: ['logs', backend, user.id],
     queryFn: () => fetchLogs(user.id),
   })
 
-  const [localTick, setLocalTick] = useState(0)
-  const localLogs = useMemo(() => {
-    void localTick
-    return loadLocalLogs(user.id)
-  }, [user.id, localTick])
-
-  const merged = useMemo(
-    () => mergeAndSort(apiLogs, localLogs),
-    [apiLogs, localLogs],
-  )
-
   const [visible, setVisible] = useState(PAGE_SIZE)
-
-  const slice = merged.slice(0, visible)
+  const slice = logs.slice(0, visible)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -44,28 +33,15 @@ function HomePageInner() {
     if (!el) return
     const io = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting && visible < merged.length) {
-          setVisible((v) => Math.min(v + PAGE_SIZE, merged.length))
+        if (entries[0]?.isIntersecting && visible < logs.length) {
+          setVisible((v) => Math.min(v + PAGE_SIZE, logs.length))
         }
       },
       { rootMargin: '120px' },
     )
     io.observe(el)
     return () => io.disconnect()
-  }, [merged.length, visible])
-
-  useEffect(() => {
-    const bump = () => setLocalTick((t) => t + 1)
-    const onStorage = (e: StorageEvent) => {
-      if (e.key?.startsWith('devlog:localLogs:')) bump()
-    }
-    window.addEventListener('storage', onStorage)
-    window.addEventListener('devlog-local-changed', bump)
-    return () => {
-      window.removeEventListener('storage', onStorage)
-      window.removeEventListener('devlog-local-changed', bump)
-    }
-  }, [])
+  }, [logs.length, visible])
 
   return (
     <div className="space-y-6">
@@ -74,7 +50,7 @@ function HomePageInner() {
           오늘의 성장
         </h1>
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          최신 일지가 위에 쌓입니다. 스크롤하면 이전 기록을 더 불러옵니다.
+          {BACKEND_LABEL[backend]}에 저장된 일지를 시간 역순으로 보여줍니다.
         </p>
       </div>
 
@@ -89,6 +65,12 @@ function HomePageInner() {
         <p className="text-sm text-zinc-500">일지를 불러오는 중…</p>
       )}
 
+      {isError && (
+        <p className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+          {error instanceof Error ? error.message : '일지를 불러오지 못했습니다.'}
+        </p>
+      )}
+
       <ul className="space-y-3">
         {slice.map((log) => (
           <li key={log.id}>
@@ -96,16 +78,9 @@ function HomePageInner() {
               to={`/logs/${encodeURIComponent(log.id)}`}
               className="block rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:border-violet-200 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-violet-900"
             >
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs text-zinc-400">
-                  {formatWhen(log.createdAt)}
-                </span>
-                {log.source === 'local' && (
-                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-900 dark:bg-amber-950 dark:text-amber-200">
-                    이 기기에만 저장
-                  </span>
-                )}
-              </div>
+              <span className="text-xs text-zinc-400">
+                {formatWhen(log.createdAt)}
+              </span>
               <h2 className="mt-2 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
                 {log.title}
               </h2>
@@ -117,7 +92,7 @@ function HomePageInner() {
         ))}
       </ul>
 
-      {!isLoading && merged.length === 0 && (
+      {!isLoading && !isError && logs.length === 0 && (
         <p className="rounded-2xl border border-dashed border-zinc-200 bg-white p-8 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900">
           아직 기록이 없습니다. 첫 일지를 남겨보세요.
         </p>
@@ -125,7 +100,7 @@ function HomePageInner() {
 
       <div ref={sentinelRef} className="h-8" aria-hidden />
 
-      {visible < merged.length && (
+      {visible < logs.length && (
         <p className="text-center text-xs text-zinc-400">더 불러오는 중…</p>
       )}
     </div>

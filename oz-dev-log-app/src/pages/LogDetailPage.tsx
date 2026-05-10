@@ -1,10 +1,13 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { fetchLog, fetchLogAttachments } from '../api/devlog'
+import {
+  deleteLog,
+  fetchLog,
+  fetchLogAttachments,
+} from '../api/devlog'
 import { MarkdownBody } from '../components/MarkdownBody'
-import { loadLocalLogs, removeLocalLog } from '../lib/localLogs'
-import { apiLogToDev, isLocalLogId } from '../lib/mergeLogs'
 import { useAuthOutlet } from '../hooks/useAuthOutlet'
+import { useBackend } from '../hooks/useBackend'
 import { useToast } from '../hooks/useToast'
 
 function formatWhen(iso: string) {
@@ -20,133 +23,59 @@ export function LogDetailPage() {
   const { user } = useAuthOutlet()
   const navigate = useNavigate()
   const { show } = useToast()
+  const [backend] = useBackend()
+  const qc = useQueryClient()
 
-  const local = isLocalLogId(logId)
-    ? loadLocalLogs(user.id).find((l) => l.id === logId)
-    : undefined
-
-  const numericId = !local && /^\d+$/.test(logId) ? Number(logId) : NaN
-
-  const { data: apiLog, isError } = useQuery({
-    queryKey: ['log', numericId],
-    queryFn: () => fetchLog(numericId),
-    enabled: !local && Number.isInteger(numericId),
+  const { data: log, isError, error } = useQuery({
+    queryKey: ['log', backend, logId],
+    queryFn: () => fetchLog(logId),
+    enabled: logId.length > 0,
   })
 
   const { data: attachments = [] } = useQuery({
-    queryKey: ['attachments', numericId],
-    queryFn: () => fetchLogAttachments(numericId),
-    enabled: !local && Number.isInteger(numericId) && Boolean(apiLog),
+    queryKey: ['attachments', backend, logId],
+    queryFn: () => fetchLogAttachments(logId),
+    enabled: logId.length > 0 && Boolean(log),
+  })
+
+  const removeMutation = useMutation({
+    mutationFn: () => deleteLog(logId, user.id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['logs', backend] })
+      qc.invalidateQueries({ queryKey: ['user', backend] })
+      show('일지를 삭제했습니다.')
+      navigate('/', { replace: true })
+    },
+    onError: (e) => {
+      show(e instanceof Error ? e.message : '삭제에 실패했습니다.')
+    },
   })
 
   if (!logId) {
     return <p className="text-sm text-zinc-500">잘못된 경로입니다.</p>
   }
 
-  if (local) {
+  if (isError) {
     return (
-      <article className="space-y-6">
-        <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-400">
-          <span>{formatWhen(local.createdAt)}</span>
-          <span className="rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-900 dark:bg-amber-950 dark:text-amber-200">
-            이 기기에만 저장
-          </span>
-        </div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-          {local.title}
-        </h1>
-        {local.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {local.tags.map((t) => (
-              <span
-                key={t}
-                className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
-              >
-                #{t}
-              </span>
-            ))}
-          </div>
-        )}
-        <MarkdownBody markdown={local.content} />
-        {local.localAttachments && local.localAttachments.length > 0 && (
-          <section>
-            <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-              첨부
-            </h2>
-            <ul className="mt-2 space-y-2">
-              {local.localAttachments.map((a) => (
-                <li key={a.url}>
-                  {a.type === 'image' ? (
-                    <img
-                      src={a.url}
-                      alt={a.name}
-                      className="max-h-64 rounded-xl border border-zinc-200 object-contain dark:border-zinc-700"
-                    />
-                  ) : (
-                    <a
-                      href={a.url}
-                      download={a.name}
-                      className="text-sm text-violet-600 underline dark:text-violet-400"
-                    >
-                      {a.name}
-                    </a>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-        <div className="flex flex-wrap gap-2 border-t border-zinc-200 pt-6 dark:border-zinc-800">
-          <Link
-            to={`/logs/${encodeURIComponent(local.id)}/edit`}
-            className="rounded-xl border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-          >
-            수정
-          </Link>
-          <button
-            type="button"
-            onClick={() => {
-              removeLocalLog(user.id, local.id)
-              window.dispatchEvent(new Event('devlog-local-changed'))
-              show('로컬 일지를 삭제했습니다.')
-              navigate('/', { replace: true })
-            }}
-            className="rounded-xl border border-red-200 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/40"
-          >
-            삭제
-          </button>
-          <Link
-            to="/"
-            className="ml-auto text-sm text-violet-600 dark:text-violet-400"
-          >
-            ← 목록
-          </Link>
-        </div>
-      </article>
+      <p className="text-sm text-zinc-500">
+        {error instanceof Error ? error.message : '일지를 찾을 수 없습니다.'}
+      </p>
     )
   }
 
-  if (!Number.isInteger(numericId)) {
-    return <p className="text-sm text-zinc-500">일지를 찾을 수 없습니다.</p>
+  if (!log) {
+    return <p className="text-sm text-zinc-500">불러오는 중…</p>
   }
 
-  if (isError || !apiLog) {
-    return <p className="text-sm text-zinc-500">일지를 찾을 수 없습니다.</p>
-  }
-
-  if (apiLog.userId !== user.id) {
-    return <p className="text-sm text-zinc-500">접근할 수 없는 일지입니다.</p>
-  }
-
-  const dev = apiLogToDev(apiLog)
+  const isMine = log.userId === user.id
 
   return (
     <article className="space-y-6">
-      <div className="text-xs text-zinc-400">{formatWhen(dev.createdAt)}</div>
+      <div className="text-xs text-zinc-400">{formatWhen(log.createdAt)}</div>
       <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-        {dev.title}
+        {log.title}
       </h1>
-      <MarkdownBody markdown={dev.content} />
+      <MarkdownBody markdown={log.content} />
       {attachments.length > 0 && (
         <section>
           <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
@@ -186,16 +115,37 @@ export function LogDetailPage() {
           </ul>
         </section>
       )}
-      <p className="rounded-xl bg-zinc-100 px-3 py-2 text-xs text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
-        서버에 저장된 일지입니다. 수정·삭제 API가 준비되면 이 화면에서 바로
-        관리할 수 있습니다.
-      </p>
-      <Link
-        to="/"
-        className="inline-block text-sm text-violet-600 dark:text-violet-400"
-      >
-        ← 목록으로
-      </Link>
+
+      <div className="flex flex-wrap gap-2 border-t border-zinc-200 pt-6 dark:border-zinc-800">
+        {isMine && (
+          <>
+            <Link
+              to={`/logs/${encodeURIComponent(log.id)}/edit`}
+              className="rounded-xl border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            >
+              수정
+            </Link>
+            <button
+              type="button"
+              disabled={removeMutation.isPending}
+              onClick={() => {
+                if (confirm('정말 삭제하시겠습니까?')) {
+                  removeMutation.mutate()
+                }
+              }}
+              className="rounded-xl border border-red-200 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/40"
+            >
+              {removeMutation.isPending ? '삭제 중…' : '삭제'}
+            </button>
+          </>
+        )}
+        <Link
+          to="/"
+          className="ml-auto text-sm text-violet-600 dark:text-violet-400"
+        >
+          ← 목록
+        </Link>
+      </div>
     </article>
   )
 }
