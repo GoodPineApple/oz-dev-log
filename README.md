@@ -1,4 +1,4 @@
-# oz-dev-log (DevLog)
+# oz-dev-log (개발일지)
 
 **MySQL과 MongoDB의 차이를 한 화면에서 비교해 보는** 풀스택 학습용 데모입니다. 동일한 REST API 스펙을 두 가지 백엔드(Sequelize/Mongoose)로 각각 구현하고, 프론트엔드는 런타임 스위처로 두 백엔드를 오갈 수 있습니다.
 
