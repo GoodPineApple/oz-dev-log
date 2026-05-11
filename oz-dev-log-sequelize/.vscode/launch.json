@@ -1,0 +1,27 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Node (app.js)",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/app.js",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "nodemon (dev)",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["nodemon"],
+      "restart": true,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "never",
+      "skipFiles": ["<node_internals>/**"],
+      "program": "${workspaceFolder}/app.js"
+    }
+  ]
+}

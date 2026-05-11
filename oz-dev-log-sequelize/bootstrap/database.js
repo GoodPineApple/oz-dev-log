@@ -1,8 +1,5 @@
 import mysql from "mysql2/promise";
-import {
-  authenticateDatabase,
-  syncDatabase,
-} from "../config/database.js";
+import { authenticateDatabase, syncDatabase } from "../config/database.js";
 import "../models/index.js";
 import { runSeed } from "../seed/run-seed.js";
 
