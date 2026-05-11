@@ -1,0 +1,26 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "oz-dev-log-sequelize: Node (app.js)",
+      "cwd": "${workspaceFolder}/oz-dev-log-sequelize",
+      "program": "${workspaceFolder}/oz-dev-log-sequelize/app.js",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "oz-dev-log-sequelize: nodemon",
+      "cwd": "${workspaceFolder}/oz-dev-log-sequelize",
+      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/nodemon",
+      "restart": true,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "never",
+      "skipFiles": ["<node_internals>/**"],
+      "program": "${workspaceFolder}/oz-dev-log-sequelize/app.js"
+    }
+  ]
+}
