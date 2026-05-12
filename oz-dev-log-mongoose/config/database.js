@@ -18,7 +18,6 @@ if (process.env.MONGOOSE_DEBUG === "true") {
 mongoose.set("strictQuery", true);
 
 export async function authenticateDatabase() {
-  console.log(MONGODB_URI);
   await mongoose.connect(MONGODB_URI);
 }
 
