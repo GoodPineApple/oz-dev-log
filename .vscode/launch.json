@@ -21,6 +21,27 @@
       "internalConsoleOptions": "never",
       "skipFiles": ["<node_internals>/**"],
       "program": "${workspaceFolder}/oz-dev-log-sequelize/app.js"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "oz-dev-log-mongoose: Node (app.js)",
+      "cwd": "${workspaceFolder}/oz-dev-log-mongoose",
+      "program": "${workspaceFolder}/oz-dev-log-mongoose/app.js",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "oz-dev-log-mongoose: nodemon",
+      "cwd": "${workspaceFolder}/oz-dev-log-mongoose",
+      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/nodemon",
+      "restart": true,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "never",
+      "skipFiles": ["<node_internals>/**"],
+      "program": "${workspaceFolder}/oz-dev-log-mongoose/app.js"
     }
   ]
 }
