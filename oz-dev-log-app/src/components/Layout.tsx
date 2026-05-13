@@ -2,6 +2,7 @@ import { Link, NavLink, Outlet } from 'react-router-dom'
 import type { User } from '../types'
 import type { AuthOutletContext } from '../hooks/useAuthOutlet'
 import { BackendSwitcher } from './BackendSwitcher'
+import { TokenBadge } from './TokenBadge'
 
 export function AppLayout({ user, onLogout }: { user: User; onLogout: () => void }) {
   const linkClass = ({ isActive }: { isActive: boolean }) =>
@@ -34,6 +35,7 @@ export function AppLayout({ user, onLogout }: { user: User; onLogout: () => void
             </NavLink>
           </nav>
           <div className="flex items-center gap-2">
+            <TokenBadge />
             <span className="hidden max-w-[8rem] truncate text-xs text-zinc-500 sm:inline dark:text-zinc-400">
               {user.nickname}
             </span>
@@ -49,15 +51,22 @@ export function AppLayout({ user, onLogout }: { user: User; onLogout: () => void
             </button>
           </div>
         </div>
-        <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 pb-3">
-          <BackendSwitcher />
-        </div>
       </header>
       <main className="mx-auto max-w-2xl px-4 py-8">
         <Outlet context={{ user } satisfies AuthOutletContext} />
       </main>
-      <footer className="border-t border-zinc-200 py-8 text-center text-xs text-zinc-400 dark:border-zinc-800">
-        DevLog · MySQL/MongoDB 비교 학습용
+      <footer className="border-t border-zinc-200 dark:border-zinc-800">
+        <div className="mx-auto max-w-2xl space-y-3 px-4 py-6 text-center text-xs text-zinc-400">
+          <details className="mx-auto inline-block max-w-md text-left">
+            <summary className="cursor-pointer select-none text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
+              고급: 백엔드 전환 (수업 비교용)
+            </summary>
+            <div className="mt-3 rounded-xl border border-dashed border-zinc-200 bg-white/60 p-3 dark:border-zinc-800 dark:bg-zinc-900/60">
+              <BackendSwitcher />
+            </div>
+          </details>
+          <p>DevLog · 인증 학습용 데모</p>
+        </div>
       </footer>
     </div>
   )

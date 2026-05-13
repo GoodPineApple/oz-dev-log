@@ -1,7 +1,7 @@
 {
   "name": "oz-dev-log",
   "private": true,
-  "description": "DevLog monorepo — app (Vite/React) + 두 백엔드(Sequelize/Mongoose) 비교 학습용",
+  "description": "DevLog monorepo — app(Vite/React) + 메인 API(JWT) + 비교용 백엔드(Sequelize/Mongoose)",
   "workspaces": [
     "oz-dev-log-app",
     "oz-dev-log-api",
@@ -9,13 +9,14 @@
     "oz-dev-log-mongoose"
   ],
   "scripts": {
-    "dev": "concurrently -k -n seq,mongo,app -c blue,green,magenta \"npm run dev -w oz-dev-log-sequelize\" \"npm run dev -w oz-dev-log-mongoose\" \"npm run dev -w oz-dev-log-app\"",
+    "dev": "concurrently -k -n api,seq,mongo,app -c cyan,blue,green,magenta \"npm run dev -w oz-dev-log-api\" \"npm run dev -w oz-dev-log-sequelize\" \"npm run dev -w oz-dev-log-mongoose\" \"npm run dev -w oz-dev-log-app\"",
     "dev:app": "npm run dev -w oz-dev-log-app",
     "dev:api": "npm run dev -w oz-dev-log-api",
     "dev:sequelize": "npm run dev -w oz-dev-log-sequelize",
     "dev:mongoose": "npm run dev -w oz-dev-log-mongoose",
     "build": "npm run build -w oz-dev-log-app",
     "lint": "npm run lint -w oz-dev-log-app",
+    "start:api": "npm run start -w oz-dev-log-api",
     "start:sequelize": "npm run start -w oz-dev-log-sequelize",
     "start:mongoose": "npm run start -w oz-dev-log-mongoose"
   },

@@ -36,6 +36,9 @@ export function fetchCreditTransactions(userId: string) {
   return fetchJson<CreditTransaction[]>(`/credit-transactions?${q}`)
 }
 
+/**
+ * 일지 작성. 작성자(userId)는 서버가 토큰에서 가져오므로 body 에 보내지 않는다.
+ */
 export function createLog(input: LogCreateInput) {
   return fetchJson<ApiLog>('/logs', {
     method: 'POST',
@@ -50,10 +53,8 @@ export function updateLog(logId: string, input: LogUpdateInput) {
   })
 }
 
-export function deleteLog(logId: string, userId: string) {
-  const q = new URLSearchParams({ userId })
-  return fetchJson<{ ok: true }>(
-    `/logs/${encodeURIComponent(logId)}?${q}`,
-    { method: 'DELETE' },
-  )
+export function deleteLog(logId: string) {
+  return fetchJson<{ ok: true }>(`/logs/${encodeURIComponent(logId)}`, {
+    method: 'DELETE',
+  })
 }

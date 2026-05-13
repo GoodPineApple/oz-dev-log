@@ -60,9 +60,10 @@ export function LogEditorPage() {
 
   const createMutation = useMutation({
     mutationFn: () =>
-      createLog({ userId: user.id, title: title.trim(), content }),
+      createLog({ title: title.trim(), content }),
     onSuccess: (created) => {
       qc.invalidateQueries({ queryKey: ['logs', backend] })
+      qc.invalidateQueries({ queryKey: ['me', backend] })
       qc.invalidateQueries({ queryKey: ['user', backend] })
       qc.invalidateQueries({
         queryKey: ['credit-transactions', backend],
@@ -78,7 +79,6 @@ export function LogEditorPage() {
   const updateMutation = useMutation({
     mutationFn: () =>
       updateLog(editingLogId!, {
-        userId: user.id,
         title: title.trim(),
         content,
       }),

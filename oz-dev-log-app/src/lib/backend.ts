@@ -1,24 +1,29 @@
 /**
- * 활성 백엔드(저장소 종류) 선택 — localStorage에 영구 저장하고
+ * 활성 백엔드 선택 — localStorage 에 영구 저장하고
  * 변경 시 'devlog-backend-changed' 이벤트로 알린다.
  *
- * 두 백엔드는 동일한 REST 인터페이스를 갖는다(/users, /logs, /credit-transactions).
- * 차이는 데이터 저장소뿐이다 — Sequelize는 MySQL, Mongoose는 MongoDB.
+ * 백엔드는 세 가지가 있다:
+ *   - 'api'        — 메인 백엔드 (MySQL + Sequelize + JWT 인증). 이번 수업의 주 대상.
+ *   - 'sequelize'  — 이전 수업의 비교용 백엔드 (MySQL + Sequelize, 인증 없음).
+ *   - 'mongoose'   — 이전 수업의 비교용 백엔드 (MongoDB + Mongoose, 인증 없음).
+ *
+ * 'api' 는 JWT 토큰을 발급/요구한다. 나머지 둘은 토큰 없이 user-pick 으로 로그인한다.
  */
-export type Backend = 'sequelize' | 'mongoose'
+export type Backend = 'api' | 'sequelize' | 'mongoose'
 
 const STORAGE_KEY = 'devlog:backend'
 const CHANGE_EVENT = 'devlog-backend-changed'
 
 function readEnvDefault(): Backend {
   const raw = import.meta.env.VITE_DEFAULT_BACKEND
-  return raw === 'mongoose' ? 'mongoose' : 'sequelize'
+  if (raw === 'sequelize' || raw === 'mongoose' || raw === 'api') return raw
+  return 'api'
 }
 
 export function getBackend(): Backend {
   try {
     const v = localStorage.getItem(STORAGE_KEY)
-    if (v === 'sequelize' || v === 'mongoose') return v
+    if (v === 'api' || v === 'sequelize' || v === 'mongoose') return v
   } catch {
     /* ignore */
   }
@@ -48,6 +53,12 @@ export function onBackendChange(handler: (next: Backend) => void) {
 }
 
 export const BACKEND_LABEL: Record<Backend, string> = {
+  api: 'API (JWT 인증)',
   sequelize: 'MySQL · Sequelize',
   mongoose: 'MongoDB · Mongoose',
+}
+
+/** 이 백엔드가 JWT 기반 인증을 사용하는지 */
+export function backendUsesJwt(backend: Backend): boolean {
+  return backend === 'api'
 }

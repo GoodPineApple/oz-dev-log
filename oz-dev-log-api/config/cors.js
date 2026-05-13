@@ -31,21 +31,16 @@ function isLocalDevOrigin(origin) {
   }
 }
 
-/** Express용 CORS 미들웨어 */
 export function corsMiddleware() {
   return cors({
     origin(origin, callback) {
-      if (!origin) {
-        return callback(null, true);
-      }
-      if (allowedCorsOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      if (!isProduction && isLocalDevOrigin(origin)) {
-        return callback(null, true);
-      }
+      if (!origin) return callback(null, true);
+      if (allowedCorsOrigins.includes(origin)) return callback(null, true);
+      if (!isProduction && isLocalDevOrigin(origin)) return callback(null, true);
       return callback(null, false);
     },
+    // 브라우저가 보낼 수 있는 헤더(특히 JWT를 담은 Authorization)를 명시.
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   });
 }

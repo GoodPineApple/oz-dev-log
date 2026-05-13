@@ -4,6 +4,27 @@
     {
       "type": "node",
       "request": "launch",
+      "name": "oz-dev-log-api: Node (app.js)",
+      "cwd": "${workspaceFolder}/oz-dev-log-api",
+      "program": "${workspaceFolder}/oz-dev-log-api/app.js",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "oz-dev-log-api: nodemon",
+      "cwd": "${workspaceFolder}/oz-dev-log-api",
+      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/nodemon",
+      "restart": true,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "never",
+      "skipFiles": ["<node_internals>/**"],
+      "program": "${workspaceFolder}/oz-dev-log-api/app.js"
+    },
+    {
+      "type": "node",
+      "request": "launch",
       "name": "oz-dev-log-sequelize: Node (app.js)",
       "cwd": "${workspaceFolder}/oz-dev-log-sequelize",
       "program": "${workspaceFolder}/oz-dev-log-sequelize/app.js",
@@ -42,6 +63,17 @@
       "internalConsoleOptions": "never",
       "skipFiles": ["<node_internals>/**"],
       "program": "${workspaceFolder}/oz-dev-log-mongoose/app.js"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "모든 백엔드 (api + sequelize + mongoose) nodemon",
+      "configurations": [
+        "oz-dev-log-api: nodemon",
+        "oz-dev-log-sequelize: nodemon",
+        "oz-dev-log-mongoose: nodemon"
+      ],
+      "stopAll": true
     }
   ]
 }

@@ -39,9 +39,10 @@ export function LogDetailPage() {
   })
 
   const removeMutation = useMutation({
-    mutationFn: () => deleteLog(logId, user.id),
+    mutationFn: () => deleteLog(logId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['logs', backend] })
+      qc.invalidateQueries({ queryKey: ['me', backend] })
       qc.invalidateQueries({ queryKey: ['user', backend] })
       show('일지를 삭제했습니다.')
       navigate('/', { replace: true })

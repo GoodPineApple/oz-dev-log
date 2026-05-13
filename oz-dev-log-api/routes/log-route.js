@@ -1,92 +1,88 @@
+/**
+ * /logs 라우트 — HTTP 처리만.
+ *
+ * 인증(routes/index.js 의 requireAuth)을 통과하면 req.user 가 항상 채워져 있다고 가정한다.
+ * 따라서 작성자(userId)는 body 가 아니라 토큰에서 가져온다. 클라이언트가 다른 사용자
+ * 행세를 하지 못하게 만드는 핵심 패턴.
+ */
 import express from "express";
-import { mockLogs, mockAttachments } from "../model/mock-data.js";
-import { useMockData } from "../model/runtimeConfig.js";
-import { LogModel, logToJSON } from "../model/Log.js";
-import { attachmentToJSON } from "../model/Attachment.js";
+import * as logController from "../controllers/log-controller.js";
 
 const router = express.Router();
 
-function parseLogId(param) {
-  const n = Number(param);
-  return Number.isInteger(n) && String(n) === param ? n : NaN;
-}
-
-/** GET /logs — 일지 목록 (?userId= 로 필터) */
-router.get("/", async (req, res) => {
-  const userId = req.query.userId;
-  if (useMockData()) {
-    let items = [...mockLogs];
-    if (typeof userId === "string" && userId.length > 0) {
-      items = items.filter((l) => l.userId === userId);
-    }
-    return res.json(items);
-  }
+router.get("/", async (req, res, next) => {
   try {
-    const where =
-      typeof userId === "string" && userId.length > 0 ? { userId } : {};
-    const rows = await LogModel.findAll({
-      where,
-      order: [["createdAt", "DESC"]],
-    });
-    res.json(rows.map((r) => logToJSON(r)).filter(Boolean));
+    // ?userId= 가 없으면 본인 일지만 보여준다.
+    const userId =
+      typeof req.query.userId === "string" && req.query.userId.length > 0
+        ? req.query.userId
+        : req.user.id;
+    res.json(await logController.listLogs({ userId }));
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "서버 오류가 발생했습니다." });
+    next(err);
   }
 });
 
-/** GET /logs/:logId/attachments — 일지별 첨부 목록 */
-router.get("/:logId/attachments", async (req, res) => {
-  const logId = parseLogId(req.params.logId);
-  if (Number.isNaN(logId)) {
-    return res.status(404).json({ error: "일지를 찾을 수 없습니다." });
-  }
-  if (useMockData()) {
-    const log = mockLogs.find((l) => l.id === logId);
-    if (!log) {
-      return res.status(404).json({ error: "일지를 찾을 수 없습니다." });
-    }
-    const attachments = mockAttachments.filter((a) => a.logId === logId);
-    return res.json(attachments);
-  }
+router.post("/", async (req, res, next) => {
   try {
-    const log = await LogModel.findByPk(logId);
-    if (!log) {
-      return res.status(404).json({ error: "일지를 찾을 수 없습니다." });
-    }
-    const rows = await log.getAttachments({
-      order: [["createdAt", "ASC"]],
+    const log = await logController.createLog({
+      ...(req.body ?? {}),
+      userId: req.user.id, // body 의 userId 는 무시하고 토큰의 sub 로 강제.
     });
-    res.json(rows.map((r) => attachmentToJSON(r)).filter(Boolean));
+    res.status(201).json(log);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "서버 오류가 발생했습니다." });
+    next(err);
   }
 });
 
-/** GET /logs/:logId — 단일 일지 */
-router.get("/:logId", async (req, res) => {
-  const logId = parseLogId(req.params.logId);
-  if (Number.isNaN(logId)) {
-    return res.status(404).json({ error: "일지를 찾을 수 없습니다." });
-  }
-  if (useMockData()) {
-    const log = mockLogs.find((l) => l.id === logId);
-    if (!log) {
-      return res.status(404).json({ error: "일지를 찾을 수 없습니다." });
-    }
-    return res.json(log);
-  }
+router.get("/:logId", async (req, res, next) => {
   try {
-    const row = await LogModel.findByPk(logId);
-    const log = logToJSON(row);
-    if (!log) {
-      return res.status(404).json({ error: "일지를 찾을 수 없습니다." });
-    }
+    res.json(await logController.getLog(req.params.logId));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put("/:logId", async (req, res, next) => {
+  try {
+    const log = await logController.updateLog(
+      req.params.logId,
+      req.body ?? {},
+      { userId: req.user.id },
+    );
     res.json(log);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "서버 오류가 발생했습니다." });
+    next(err);
+  }
+});
+
+router.delete("/:logId", async (req, res, next) => {
+  try {
+    res.json(
+      await logController.deleteLog(req.params.logId, { userId: req.user.id }),
+    );
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/:logId/attachments", async (req, res, next) => {
+  try {
+    res.json(await logController.listAttachments(req.params.logId));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/:logId/attachments", async (req, res, next) => {
+  try {
+    const att = await logController.createAttachment(
+      req.params.logId,
+      req.body ?? {},
+    );
+    res.status(201).json(att);
+  } catch (err) {
+    next(err);
   }
 });
 
