@@ -57,28 +57,24 @@ export const seedLogs = [
   },
 ];
 
+// 시드용 placeholder 이미지 — 실제로 브라우저에서 로딩된다.
+// 학생들이 첨부 업로드 UI 를 켜기 전에도 "기존 첨부가 어떻게 보이는지" 미리 볼 수 있게.
 export const seedAttachments = [
   {
     logIndex: 0,
     fileName: "diagram.png",
-    fileUrl: "https://cdn.example.com/uploads/diagram.png",
+    fileUrl: "https://placehold.co/600x400/png?text=Sample+1",
+    filePath: null,
     fileType: AttachmentType.IMAGE,
     fileSize: 48219,
     createdAt: "2026-05-06T10:16:00.000Z",
   },
   {
-    logIndex: 0,
-    fileName: "notes.md",
-    fileUrl: "https://cdn.example.com/uploads/notes.md",
-    fileType: AttachmentType.FILE,
-    fileSize: 2048,
-    createdAt: "2026-05-06T10:17:00.000Z",
-  },
-  {
     logIndex: 2,
-    fileName: "compare.pdf",
-    fileUrl: "https://cdn.example.com/uploads/compare.pdf",
-    fileType: AttachmentType.FILE,
+    fileName: "compare.png",
+    fileUrl: "https://placehold.co/600x400/png?text=Sample+2",
+    filePath: null,
+    fileType: AttachmentType.IMAGE,
     fileSize: 156902,
     createdAt: "2026-05-07T03:21:00.000Z",
   },

@@ -45,7 +45,13 @@ export async function fetchJson<T>(
 ): Promise<T> {
   const target = backend ?? getBackend()
   const headers = new Headers(init?.headers)
-  if (init?.body && !headers.has('Content-Type')) {
+  // FormData(멀티파트) 요청은 브라우저가 boundary 를 포함한 Content-Type 을
+  // 자동으로 붙여 준다. 우리가 application/json 으로 덮으면 multer 가 파싱하지 못한다.
+  if (
+    init?.body &&
+    typeof init.body === 'string' &&
+    !headers.has('Content-Type')
+  ) {
     headers.set('Content-Type', 'application/json')
   }
   if (backendUsesJwt(target)) {

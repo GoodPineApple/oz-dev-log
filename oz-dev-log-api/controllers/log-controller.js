@@ -6,16 +6,8 @@
  * - 관계형 모델에선 외래키/관계를 통한 join이 자연스럽다.
  */
 import { sequelize } from "../config/database.js";
-import {
-  Log,
-  User,
-  Attachment,
-  CreditTransaction,
-} from "../models/index.js";
-import {
-  serializeAttachment,
-  serializeLog,
-} from "./serializers.js";
+import { Log, User, CreditTransaction } from "../models/index.js";
+import { serializeLog } from "./serializers.js";
 import { adjustUserCredits } from "./user-controller.js";
 import { CreditType } from "../models/enums.js";
 
@@ -132,39 +124,4 @@ export async function deleteLog(rawId, { userId }) {
   return { ok: true };
 }
 
-export async function listAttachments(rawLogId) {
-  const id = parseLogId(rawLogId);
-  if (id == null) throw notFound("일지를 찾을 수 없습니다.");
-  const log = await Log.findByPk(id);
-  if (!log) throw notFound("일지를 찾을 수 없습니다.");
-  const rows = await Attachment.findAll({
-    where: { logId: id },
-    order: [["createdAt", "ASC"]],
-  });
-  return rows.map(serializeAttachment);
-}
-
-export async function createAttachment(rawLogId, payload) {
-  const id = parseLogId(rawLogId);
-  if (id == null) throw notFound("일지를 찾을 수 없습니다.");
-  const log = await Log.findByPk(id);
-  if (!log) throw notFound("일지를 찾을 수 없습니다.");
-  if (
-    !payload ||
-    typeof payload.fileName !== "string" ||
-    typeof payload.fileUrl !== "string" ||
-    typeof payload.fileType !== "string"
-  ) {
-    throw badRequest(
-      "fileName, fileUrl, fileType이 필요합니다 (fileType: image|file).",
-    );
-  }
-  const row = await Attachment.create({
-    logId: id,
-    fileName: payload.fileName,
-    fileUrl: payload.fileUrl,
-    fileType: payload.fileType,
-    fileSize: Number(payload.fileSize) || 0,
-  });
-  return serializeAttachment(row);
-}
+// 첨부 조회/업로드/삭제는 controllers/attachment-controller.js 로 분리되었다.

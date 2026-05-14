@@ -7,6 +7,7 @@ import {
 import { Link, useMatch, useNavigate } from 'react-router-dom'
 import { createLog, fetchLog, updateLog } from '../api/devlog'
 import { MarkdownBody } from '../components/MarkdownBody'
+import { AttachmentManager } from '../components/AttachmentManager'
 import { useAuthOutlet } from '../hooks/useAuthOutlet'
 import { useBackend } from '../hooks/useBackend'
 import { useToast } from '../hooks/useToast'
@@ -59,8 +60,7 @@ export function LogEditorPage() {
   }, [isNew, existing, user.id, navigate, show])
 
   const createMutation = useMutation({
-    mutationFn: () =>
-      createLog({ title: title.trim(), content }),
+    mutationFn: () => createLog({ title: title.trim(), content }),
     onSuccess: (created) => {
       qc.invalidateQueries({ queryKey: ['logs', backend] })
       qc.invalidateQueries({ queryKey: ['me', backend] })
@@ -68,8 +68,11 @@ export function LogEditorPage() {
       qc.invalidateQueries({
         queryKey: ['credit-transactions', backend],
       })
-      show('일지를 저장했습니다. (+100 CP)')
-      navigate(`/logs/${encodeURIComponent(created.id)}`, { replace: true })
+      show('일지를 저장했습니다. (+100 CP) 이제 이미지를 첨부할 수 있어요.')
+      // 새 일지를 만든 직후엔 첨부 업로드 가능한 수정 페이지로 이동한다.
+      navigate(`/logs/${encodeURIComponent(created.id)}/edit`, {
+        replace: true,
+      })
     },
     onError: (e) => {
       show(e instanceof Error ? e.message : '저장에 실패했습니다.')
@@ -119,8 +122,9 @@ export function LogEditorPage() {
           {isNew ? '새 일지' : '일지 수정'}
         </h1>
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          마크다운으로 작성하고 미리보기로 확인하세요. 저장 시 백엔드에 즉시
-          반영되며, 작성 시 자동으로 100 CP가 적립됩니다.
+          {isNew
+            ? '먼저 제목과 본문을 저장하면 이어서 이미지를 첨부할 수 있습니다. 작성 시 자동으로 100 CP가 적립됩니다.'
+            : '마크다운으로 작성하고 미리보기로 확인하세요. 이미지는 아래에서 바로 업로드·삭제할 수 있습니다.'}
         </p>
       </div>
 
@@ -191,7 +195,7 @@ export function LogEditorPage() {
             disabled={isPending}
             className="rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-50"
           >
-            {isPending ? '저장 중…' : '저장'}
+            {isPending ? '저장 중…' : isNew ? '저장하고 첨부 추가' : '저장'}
           </button>
           <Link
             to={
@@ -201,10 +205,16 @@ export function LogEditorPage() {
             }
             className="rounded-xl border border-zinc-200 px-5 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
           >
-            취소
+            {isNew ? '취소' : '완료'}
           </Link>
         </div>
       </form>
+
+      {!isNew && editingLogId && (
+        <div className="border-t border-zinc-200 pt-6 dark:border-zinc-800">
+          <AttachmentManager logId={editingLogId} />
+        </div>
+      )}
     </div>
   )
 }

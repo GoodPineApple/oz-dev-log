@@ -1,7 +1,7 @@
 {
   "name": "oz-dev-log-api",
   "version": "1.0.0",
-  "description": "DevLog primary API — Express 5 + Sequelize + JWT 인증 (학습용)",
+  "description": "DevLog primary API — Express 5 + Sequelize + JWT + multer/Firebase Storage (학습용)",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
@@ -13,7 +13,9 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "firebase-admin": "^12.7.0",
     "jsonwebtoken": "^9.0.2",
+    "multer": "^2.1.1",
     "mysql2": "^3.22.3",
     "sequelize": "^6.37.8"
   },

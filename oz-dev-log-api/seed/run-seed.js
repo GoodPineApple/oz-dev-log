@@ -53,6 +53,7 @@ export async function runSeed() {
       logId: createdLogs[a.logIndex].id,
       fileName: a.fileName,
       fileUrl: a.fileUrl,
+      filePath: a.filePath ?? null,
       fileType: a.fileType,
       fileSize: a.fileSize,
       createdAt: a.createdAt,
