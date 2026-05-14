@@ -19,10 +19,31 @@ function badRequest(message) {
   return err;
 }
 
+/**
+ * 한글 파일명 복원.
+ *
+ * multer 는 multipart 의 filename 헤더를 항상 latin-1 로 디코드해
+ * `file.originalname` 에 넣는다. 클라이언트(브라우저)는 UTF-8 로 보내므로,
+ * 한글이 들어 있던 파일명은 "안녕.png" → "ìë…•.png" 같은 모양으로 깨진다.
+ * 받자마자 latin-1 → UTF-8 로 재해석해 원본 한글을 복원한다.
+ *
+ * 이 함수는 ASCII 파일명에는 영향이 없다 (왕복 인코딩이 동등).
+ */
+function fixOriginalNameEncoding(file) {
+  try {
+    file.originalname = Buffer.from(file.originalname, "latin1").toString(
+      "utf8",
+    );
+  } catch {
+    /* 변환 실패해도 원본 그대로 두고 통과 */
+  }
+}
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_FILE_BYTES },
   fileFilter(_req, file, cb) {
+    fixOriginalNameEncoding(file);
     if (file.mimetype.startsWith("image/")) {
       cb(null, true);
     } else {
