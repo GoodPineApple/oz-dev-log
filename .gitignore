@@ -37,3 +37,5 @@ lerna-debug.log*
 
 # API / repo-specific
 oz-dev-log-api/base/scrapper/output/
+
+public
