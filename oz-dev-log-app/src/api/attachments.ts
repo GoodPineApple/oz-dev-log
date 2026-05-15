@@ -23,7 +23,8 @@ export function uploadAttachment(logId: string, file: File) {
 }
 
 export function deleteAttachment(logId: string, attachmentId: string) {
-  return fetchJson<{ ok: true }>(
+  // 서버가 204 No Content 로 응답하므로 본문이 없다.
+  return fetchJson<void>(
     `/logs/${encodeURIComponent(logId)}/attachments/${encodeURIComponent(attachmentId)}`,
     { method: 'DELETE' },
   )

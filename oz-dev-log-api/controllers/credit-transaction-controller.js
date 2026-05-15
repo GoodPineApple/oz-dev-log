@@ -6,17 +6,7 @@ import { sequelize } from "../config/database.js";
 import { serializeCreditTransaction } from "./serializers.js";
 import { adjustUserCredits } from "./user-controller.js";
 import { CREDIT_TYPES } from "../models/enums.js";
-
-function badRequest(msg) {
-  const err = new Error(msg);
-  err.status = 400;
-  return err;
-}
-function notFound(msg) {
-  const err = new Error(msg);
-  err.status = 404;
-  return err;
-}
+import { HttpError } from "../lib/http-error.js";
 
 function parseId(raw) {
   const s = String(raw ?? "");
@@ -38,9 +28,9 @@ export async function listCreditTransactions({ userId } = {}) {
 
 export async function getCreditTransaction(rawId) {
   const id = parseId(rawId);
-  if (id == null) throw notFound("내역을 찾을 수 없습니다.");
+  if (id == null) throw HttpError.notFound("내역을 찾을 수 없습니다.", "TX_NOT_FOUND");
   const row = await CreditTransaction.findByPk(id);
-  if (!row) throw notFound("내역을 찾을 수 없습니다.");
+  if (!row) throw HttpError.notFound("내역을 찾을 수 없습니다.", "TX_NOT_FOUND");
   return serializeCreditTransaction(row);
 }
 
@@ -52,25 +42,30 @@ export async function createCreditTransaction({
   description,
 }) {
   if (typeof userId !== "string" || userId.length === 0) {
-    throw badRequest("userId가 필요합니다.");
+    throw HttpError.badRequest("userId가 필요합니다.", "MISSING_USER_ID");
   }
   if (!CREDIT_TYPES.includes(type)) {
-    throw badRequest(`type은 ${CREDIT_TYPES.join("|")} 중 하나여야 합니다.`);
+    throw HttpError.badRequest(
+      `type은 ${CREDIT_TYPES.join("|")} 중 하나여야 합니다.`,
+      "INVALID_CREDIT_TYPE",
+    );
   }
   const amt = Number(amount);
   if (!Number.isFinite(amt)) {
-    throw badRequest("amount는 숫자여야 합니다.");
+    throw HttpError.badRequest("amount는 숫자여야 합니다.", "INVALID_AMOUNT");
   }
 
   const user = await User.findByPk(userId);
-  if (!user) throw notFound("사용자를 찾을 수 없습니다.");
+  if (!user) throw HttpError.notFound("사용자를 찾을 수 없습니다.", "USER_NOT_FOUND");
 
   let normalizedLogId = null;
   if (logId != null && String(logId).length > 0) {
     const lid = parseId(logId);
-    if (lid == null) throw badRequest("logId 형식이 올바르지 않습니다.");
+    if (lid == null) {
+      throw HttpError.badRequest("logId 형식이 올바르지 않습니다.", "INVALID_LOG_ID");
+    }
     const log = await Log.findByPk(lid);
-    if (!log) throw notFound("일지를 찾을 수 없습니다.");
+    if (!log) throw HttpError.notFound("일지를 찾을 수 없습니다.", "LOG_NOT_FOUND");
     normalizedLogId = lid;
   }
 

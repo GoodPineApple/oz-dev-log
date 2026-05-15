@@ -6,31 +6,17 @@
  *   - login: bcrypt.compare 로 입력 비밀번호와 저장된 해시를 비교한다.
  *   - 로그인 실패 시 "이메일이 없습니다" / "비밀번호가 틀렸습니다" 를 구분하지 않는다 —
  *     이메일 존재 여부 자체가 정보 누출이 될 수 있기 때문.
+ *   - 에러는 모두 HttpError 로 던진다. 응답 직렬화는 글로벌 에러 핸들러가 맡는다.
  */
 import bcrypt from "bcryptjs";
 import { randomUUID } from "node:crypto";
 import { User } from "../models/index.js";
 import { serializeUser } from "./serializers.js";
 import { signToken } from "./jwt-helper.js";
+import { HttpError } from "../lib/http-error.js";
 
 const BCRYPT_ROUNDS = Number(process.env.BCRYPT_ROUNDS) || 10;
 const MIN_PASSWORD_LENGTH = 6;
-
-function badRequest(msg) {
-  const err = new Error(msg);
-  err.status = 400;
-  return err;
-}
-function conflict(msg) {
-  const err = new Error(msg);
-  err.status = 409;
-  return err;
-}
-function unauthorized(msg) {
-  const err = new Error(msg);
-  err.status = 401;
-  return err;
-}
 
 function normalizeEmail(value) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
@@ -47,21 +33,21 @@ export async function register(input) {
     typeof input?.nickname === "string" ? input.nickname.trim() : "";
 
   if (!email || !email.includes("@")) {
-    throw badRequest("유효한 이메일이 필요합니다.");
+    throw HttpError.badRequest("유효한 이메일이 필요합니다.", "INVALID_EMAIL");
   }
   if (password.length < MIN_PASSWORD_LENGTH) {
-    throw badRequest(
+    throw HttpError.badRequest(
       `비밀번호는 최소 ${MIN_PASSWORD_LENGTH}자 이상이어야 합니다.`,
+      "WEAK_PASSWORD",
     );
   }
   if (!nickname) {
-    throw badRequest("닉네임이 필요합니다.");
+    throw HttpError.badRequest("닉네임이 필요합니다.", "MISSING_NICKNAME");
   }
 
-  // .scope(null) 로 모든 컬럼 조회 — 사실 여기선 존재 여부만 보면 되지만 명시.
   const existing = await User.findOne({ where: { email } });
   if (existing) {
-    throw conflict("이미 가입된 이메일입니다.");
+    throw HttpError.conflict("이미 가입된 이메일입니다.", "EMAIL_TAKEN");
   }
 
   const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
@@ -86,18 +72,27 @@ export async function login(input) {
   const password = typeof input?.password === "string" ? input.password : "";
 
   if (!email || !password) {
-    throw badRequest("이메일과 비밀번호를 모두 입력하세요.");
+    throw HttpError.badRequest(
+      "이메일과 비밀번호를 모두 입력하세요.",
+      "MISSING_CREDENTIALS",
+    );
   }
 
   // 기본 스코프는 passwordHash 를 제외하므로 비교를 위해 명시적으로 포함시킨다.
   const user = await User.scope("withPassword").findOne({ where: { email } });
   if (!user) {
-    throw unauthorized("이메일 또는 비밀번호가 올바르지 않습니다.");
+    throw HttpError.unauthorized(
+      "이메일 또는 비밀번호가 올바르지 않습니다.",
+      "INVALID_CREDENTIALS",
+    );
   }
 
   const ok = await bcrypt.compare(password, user.passwordHash);
   if (!ok) {
-    throw unauthorized("이메일 또는 비밀번호가 올바르지 않습니다.");
+    throw HttpError.unauthorized(
+      "이메일 또는 비밀번호가 올바르지 않습니다.",
+      "INVALID_CREDENTIALS",
+    );
   }
 
   const token = signToken({ sub: user.id });
@@ -110,7 +105,7 @@ export async function login(input) {
 export async function getMe(userId) {
   const user = await User.findByPk(userId);
   if (!user) {
-    throw unauthorized("사용자를 찾을 수 없습니다.");
+    throw HttpError.unauthorized("사용자를 찾을 수 없습니다.", "USER_NOT_FOUND");
   }
   return serializeUser(user);
 }

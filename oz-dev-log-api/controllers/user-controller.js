@@ -4,14 +4,19 @@
  */
 import { User } from "../models/index.js";
 import { serializeUser } from "./serializers.js";
+import { HttpError } from "../lib/http-error.js";
 
 export async function listUsers() {
   const rows = await User.findAll({ order: [["createdAt", "ASC"]] });
   return rows.map(serializeUser);
 }
 
+/**
+ * 사용자 단건 조회. 없으면 404 를 던진다 — 라우트가 응답 분기에서 해방된다.
+ */
 export async function getUser(userId) {
   const row = await User.findByPk(userId);
+  if (!row) throw HttpError.notFound("사용자를 찾을 수 없습니다.", "USER_NOT_FOUND");
   return serializeUser(row);
 }
 
@@ -19,9 +24,7 @@ export async function adjustUserCredits(userId, delta, transaction) {
   if (typeof delta !== "number" || Number.isNaN(delta)) return;
   const user = await User.findByPk(userId, { transaction });
   if (!user) {
-    const err = new Error("사용자를 찾을 수 없습니다.");
-    err.status = 404;
-    throw err;
+    throw HttpError.notFound("사용자를 찾을 수 없습니다.", "USER_NOT_FOUND");
   }
   const next = Math.max(0, Number(user.totalCredits) + delta);
   user.totalCredits = next;

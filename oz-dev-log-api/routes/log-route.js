@@ -11,10 +11,7 @@
 import express from "express";
 import * as logController from "../controllers/log-controller.js";
 import * as attachmentController from "../controllers/attachment-controller.js";
-import {
-  multerErrorHandler,
-  uploadSingleImage,
-} from "../middleware/upload.js";
+import { uploadSingleImage } from "../middleware/upload.js";
 
 const router = express.Router();
 
@@ -65,9 +62,9 @@ router.put("/:logId", async (req, res, next) => {
 
 router.delete("/:logId", async (req, res, next) => {
   try {
-    res.json(
-      await logController.deleteLog(req.params.logId, { userId: req.user.id }),
-    );
+    // 삭제는 응답 본문이 없는 게 HTTP 의미상 자연스럽다 — 204 No Content.
+    await logController.deleteLog(req.params.logId, { userId: req.user.id });
+    res.status(204).end();
   } catch (err) {
     next(err);
   }
@@ -84,7 +81,6 @@ router.get("/:logId/attachments", async (req, res, next) => {
 router.post(
   "/:logId/attachments",
   uploadSingleImage,
-  multerErrorHandler,
   async (req, res, next) => {
     try {
       const att = await attachmentController.uploadAttachment(
@@ -100,12 +96,12 @@ router.post(
 
 router.delete("/:logId/attachments/:attachmentId", async (req, res, next) => {
   try {
-    const result = await attachmentController.deleteAttachment(
+    await attachmentController.deleteAttachment(
       req.params.logId,
       req.params.attachmentId,
       { ownerId: req.user.id },
     );
-    res.json(result);
+    res.status(204).end();
   } catch (err) {
     next(err);
   }

@@ -54,7 +54,8 @@ export function updateLog(logId: string, input: LogUpdateInput) {
 }
 
 export function deleteLog(logId: string) {
-  return fetchJson<{ ok: true }>(`/logs/${encodeURIComponent(logId)}`, {
+  // 서버가 204 No Content 로 응답하므로 본문이 없다.
+  return fetchJson<void>(`/logs/${encodeURIComponent(logId)}`, {
     method: 'DELETE',
   })
 }

@@ -14,22 +14,7 @@ import { Log, Attachment } from "../models/index.js";
 import { getStorage } from "../config/storage.js";
 import { AttachmentType } from "../models/enums.js";
 import { serializeAttachment } from "./serializers.js";
-
-function badRequest(msg) {
-  const err = new Error(msg);
-  err.status = 400;
-  return err;
-}
-function notFound(msg) {
-  const err = new Error(msg);
-  err.status = 404;
-  return err;
-}
-function forbidden(msg) {
-  const err = new Error(msg);
-  err.status = 403;
-  return err;
-}
+import { HttpError } from "../lib/http-error.js";
 
 function parseLogId(raw) {
   const s = String(raw ?? "");
@@ -45,11 +30,14 @@ function parseAttachmentId(raw) {
 
 async function loadLogOrThrow(rawLogId, { ownerId } = {}) {
   const logId = parseLogId(rawLogId);
-  if (logId == null) throw notFound("일지를 찾을 수 없습니다.");
+  if (logId == null) throw HttpError.notFound("일지를 찾을 수 없습니다.", "LOG_NOT_FOUND");
   const log = await Log.findByPk(logId);
-  if (!log) throw notFound("일지를 찾을 수 없습니다.");
+  if (!log) throw HttpError.notFound("일지를 찾을 수 없습니다.", "LOG_NOT_FOUND");
   if (ownerId && log.userId !== ownerId) {
-    throw forbidden("본인 일지에만 파일을 첨부할 수 있습니다.");
+    throw HttpError.forbidden(
+      "본인 일지에만 파일을 첨부할 수 있습니다.",
+      "NOT_LOG_OWNER",
+    );
   }
   return log;
 }
@@ -74,7 +62,7 @@ export async function listAttachments(rawLogId) {
  */
 export async function uploadAttachment(rawLogId, { ownerId, file }) {
   if (!file || !file.buffer) {
-    throw badRequest("file 필드로 파일을 보내주세요.");
+    throw HttpError.badRequest("file 필드로 파일을 보내주세요.", "MISSING_FILE");
   }
   const log = await loadLogOrThrow(rawLogId, { ownerId });
 
@@ -122,10 +110,12 @@ export async function uploadAttachment(rawLogId, { ownerId, file }) {
 export async function deleteAttachment(rawLogId, rawAttachmentId, { ownerId }) {
   const log = await loadLogOrThrow(rawLogId, { ownerId });
   const attachmentId = parseAttachmentId(rawAttachmentId);
-  if (attachmentId == null) throw notFound("첨부를 찾을 수 없습니다.");
+  if (attachmentId == null) {
+    throw HttpError.notFound("첨부를 찾을 수 없습니다.", "ATTACHMENT_NOT_FOUND");
+  }
   const attachment = await Attachment.findByPk(attachmentId);
   if (!attachment || attachment.logId !== log.id) {
-    throw notFound("첨부를 찾을 수 없습니다.");
+    throw HttpError.notFound("첨부를 찾을 수 없습니다.", "ATTACHMENT_NOT_FOUND");
   }
 
   const filePath = attachment.filePath;

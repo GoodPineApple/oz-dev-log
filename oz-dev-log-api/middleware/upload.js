@@ -8,16 +8,13 @@
  *   - fileFilter: MIME 타입 검사. 클라이언트의 accept="image/*" 는 가이드일 뿐이라
  *     서버에서 한 번 더 검증한다.
  *   - .single("file"): 폼 필드 이름이 "file" 인 한 개의 파일만 받는다.
+ *   - 에러는 HttpError 로 통일 — 글로벌 에러 핸들러가 응답 스키마를 일원화한다.
+ *     multer 의 LIMIT_FILE_SIZE 같은 라이브러리 고유 에러도 글로벌 핸들러가 잡아준다.
  */
 import multer from "multer";
+import { HttpError } from "../lib/http-error.js";
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10MB
-
-function badRequest(message) {
-  const err = new Error(message);
-  err.status = 400;
-  return err;
-}
 
 /**
  * 한글 파일명 복원.
@@ -47,23 +44,15 @@ const upload = multer({
     if (file.mimetype.startsWith("image/")) {
       cb(null, true);
     } else {
-      cb(badRequest("이미지 파일만 업로드 가능합니다."));
+      cb(
+        HttpError.badRequest(
+          "이미지 파일만 업로드 가능합니다.",
+          "UNSUPPORTED_MEDIA_TYPE",
+        ),
+      );
     }
   },
 });
 
 /** POST 시 사용할 단일 파일 multer 미들웨어 (필드명: "file") */
 export const uploadSingleImage = upload.single("file");
-
-/** multer 의 LIMIT_FILE_SIZE 같은 에러를 깔끔한 4xx 응답으로 변환 */
-export function multerErrorHandler(err, _req, res, next) {
-  if (err instanceof multer.MulterError) {
-    if (err.code === "LIMIT_FILE_SIZE") {
-      return res
-        .status(413)
-        .json({ error: `파일은 ${MAX_FILE_BYTES / 1024 / 1024}MB 를 넘을 수 없습니다.` });
-    }
-    return res.status(400).json({ error: `업로드 오류: ${err.message}` });
-  }
-  next(err);
-}

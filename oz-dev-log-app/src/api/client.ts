@@ -8,26 +8,42 @@ async function parseJson<T>(res: Response): Promise<T> {
   return JSON.parse(text) as T
 }
 
+/**
+ * 백엔드 표준 에러 응답:
+ *   { error: { code, message, status, details? } }
+ *
+ * code 를 캐치해 두면 화면에서 케이스별 분기가 가능해진다 — 예:
+ *   if (err instanceof ApiError && err.code === 'EMAIL_TAKEN') { ... }
+ */
 export class ApiError extends Error {
   status: number
-  constructor(message: string, status: number) {
+  code: string
+  constructor(message: string, status: number, code: string) {
     super(message)
     this.status = status
+    this.code = code
+  }
+}
+
+type ApiErrorBody = {
+  error?: {
+    code?: string
+    message?: string
+    status?: number
   }
 }
 
 async function throwErrorFromResponse(res: Response): Promise<never> {
-  let detail: unknown = res.statusText
+  let body: ApiErrorBody | null = null
   try {
-    detail = await parseJson(res.clone())
+    body = await parseJson<ApiErrorBody>(res.clone())
   } catch {
-    /* ignore */
+    /* JSON 이 아니거나 빈 본문이면 아래에서 기본값으로 처리 */
   }
-  const msg =
-    typeof detail === 'object' && detail !== null && 'error' in detail
-      ? String((detail as { error: string }).error)
-      : `요청 실패 (${res.status})`
-  throw new ApiError(msg, res.status)
+  const message =
+    body?.error?.message ?? res.statusText ?? `요청 실패 (${res.status})`
+  const code = body?.error?.code ?? 'UNKNOWN'
+  throw new ApiError(message, res.status, code)
 }
 
 /**
