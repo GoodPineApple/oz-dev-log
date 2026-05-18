@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+/// 사용자 테이블. 비밀번호는 bcrypt 해시만 저장한다.
+model User {
+  id           String   @id @default(uuid()) @db.Char(36)
+  email        String   @unique @db.VarChar(255)
+  nickname     String   @db.VarChar(100)
+  passwordHash String   @map("password_hash") @db.VarChar(100)
+  totalCredits Int      @default(0) @map("total_credits") @db.UnsignedInt
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  logs               Log[]
+  creditTransactions CreditTransaction[]
+
+  @@map("users")
+}
+
+/// 개발 일지 테이블.
+model Log {
+  id        Int      @id @default(autoincrement()) @db.UnsignedInt
+  userId    String   @map("user_id") @db.Char(36)
+  title     String   @db.VarChar(500)
+  content   String   @db.LongText
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user               User                @relation(fields: [userId], references: [id])
+  attachments        Attachment[]
+  creditTransactions CreditTransaction[]
+
+  @@map("logs")
+}
+
+/// 첨부 파일 테이블.
+model Attachment {
+  id        Int      @id @default(autoincrement()) @db.UnsignedInt
+  logId     Int      @map("log_id") @db.UnsignedInt
+  fileName  String   @map("file_name") @db.VarChar(500)
+  fileUrl   String   @map("file_url") @db.VarChar(2048)
+  filePath  String?  @map("file_path") @db.VarChar(1024)
+  fileType  FileType @map("file_type")
+  fileSize  Int      @default(0) @map("file_size") @db.UnsignedInt
+  createdAt DateTime @default(now()) @map("created_at")
+
+  log Log @relation(fields: [logId], references: [id], onDelete: Cascade)
+
+  @@map("attachments")
+}
+
+/// 크레딧 거래 내역 테이블. amount 양수=적립, 음수=사용.
+model CreditTransaction {
+  id          Int        @id @default(autoincrement()) @db.UnsignedInt
+  userId      String     @map("user_id") @db.Char(36)
+  logId       Int?       @map("log_id") @db.UnsignedInt
+  amount      Int
+  type        CreditType
+  description String?    @db.Text
+  createdAt   DateTime   @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+  log  Log? @relation(fields: [logId], references: [id])
+
+  @@map("credit_transactions")
+}
+
+enum FileType {
+  image
+  file
+}
+
+enum CreditType {
+  earn
+  spend
+  bonus
+  adjust
+}

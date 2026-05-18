@@ -6,7 +6,8 @@
     "oz-dev-log-app",
     "oz-dev-log-api",
     "oz-dev-log-sequelize",
-    "oz-dev-log-mongoose"
+    "oz-dev-log-mongoose",
+    "oz-dev-log-next"
   ],
   "scripts": {
     "dev": "concurrently -k -n api,seq,mongo,app -c cyan,blue,green,magenta \"npm run dev -w oz-dev-log-api\" \"npm run dev -w oz-dev-log-sequelize\" \"npm run dev -w oz-dev-log-mongoose\" \"npm run dev -w oz-dev-log-app\"",
@@ -14,6 +15,8 @@
     "dev:api": "npm run dev -w oz-dev-log-api",
     "dev:sequelize": "npm run dev -w oz-dev-log-sequelize",
     "dev:mongoose": "npm run dev -w oz-dev-log-mongoose",
+    "dev:next": "npm run dev -w oz-dev-log-next",
+    "build:next": "npm run build -w oz-dev-log-next",
     "build": "npm run build -w oz-dev-log-app",
     "lint": "npm run lint -w oz-dev-log-app",
     "start:api": "npm run start -w oz-dev-log-api",
