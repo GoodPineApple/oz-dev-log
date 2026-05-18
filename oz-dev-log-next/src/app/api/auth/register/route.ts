@@ -40,7 +40,11 @@ export async function POST(req: NextRequest) {
   try {
     const { email, nickname, password } = await req.json();
     if (!email || !nickname || !password || password.length < 6) {
-      throw new HttpError(400, "VALIDATION", "email, nickname, password(6자 이상)가 필요합니다.");
+      throw new HttpError(
+        400,
+        "VALIDATION",
+        "email, nickname, password(6자 이상)가 필요합니다.",
+      );
     }
 
     const exists = await prisma.user.findUnique({ where: { email } });

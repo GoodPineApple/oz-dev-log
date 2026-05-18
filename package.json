@@ -23,7 +23,15 @@
     "start:sequelize": "npm run start -w oz-dev-log-sequelize",
     "start:mongoose": "npm run start -w oz-dev-log-mongoose"
   },
+  "dependencies": {
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
+  },
   "devDependencies": {
     "concurrently": "^9.2.1"
+  },
+  "overrides": {
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
   }
 }
